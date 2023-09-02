@@ -5,6 +5,6 @@ project(DemoLib VERSION 1.0.0)
 
 cmt_project_setup()
 
-cmt_add_library(hello SHARED src/hello.cpp)
-
-add_subdirectory(src)
+# add_subdirectory(src)
+# include(test/test_targetcreation.cmake)
+include(test/test_installfilesets.cmake)
