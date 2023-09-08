@@ -27,22 +27,24 @@ macro(cmt_project_setup)
 
     if("${PROJECT_NAME}" STREQUAL "${CMAKE_PROJECT_NAME}")
         # set option to build documentation.
-        set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
+        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
         option(BUILD_DOCUMENTATION "Build documentation" ON)
         option(BUILD_TESTS "Build tests" ON)
         option(BUILD_EXAMPLES "Build examples" ON)
     endif()
 
-    add_subdirectory(src)
-
-    if(BUILD_DOCUMENTATION AND EXISTS ${CMAKE_CURRENT_LIST_DIR}/docs)
-        # find_package(Doxygen REQUIRED)
-        add_subdirectory(docs)
+    if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/src)
+        add_subdirectory(src)
     endif()
 
-    if(BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_LIST_DIR}/tests)
-        add_subdirectory(tests)
+    if(BUILD_DOCUMENTATION AND EXISTS ${CMAKE_CURRENT_LIST_DIR}/doc)
+        # Any dependecies are found in the actual documentation cmake file.
+        add_subdirectory(doc)
+    endif()
+
+    if(BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_LIST_DIR}/test)
+        add_subdirectory(test)
     endif()
 
     if(BUILD_EXAMPLES AND EXISTS ${CMAKE_CURRENT_LIST_DIR}/examples)

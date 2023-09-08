@@ -1,0 +1,2 @@
+include(test_targetcreation.cmake)
+include(test_installfilesets.cmake)
