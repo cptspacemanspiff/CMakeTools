@@ -54,14 +54,14 @@ PROJECT_NUMBER         = "@PROJECT_VERSION@"
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "@PROJECT_BRIEF@"
+PROJECT_BRIEF          = "@DOXYGEN_PROJECT_BRIEF@"
 
 # With the PROJECT_LOGO tag one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
 # pixels and the maximum width should not exceed 200 pixels. Doxygen will copy
 # the logo to the output directory.
 
-PROJECT_LOGO           = @CMT_PROJECT_LOGO@
+PROJECT_LOGO           = @DOXYGEN_PROJECT_LOGO@
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) path
 # into which the generated documentation will be written. If a relative path is
@@ -2715,7 +2715,7 @@ DIAFILE_DIRS           =
 # a preprocessing step. Doxygen will generate a warning when it encounters a
 # \startuml command in this case and will not generate output for the diagram.
 
-PLANTUML_JAR_PATH      =
+PLANTUML_JAR_PATH      = @DOXYGEN_PLANTUML_JAR_PATH@
 
 # When using plantuml, the PLANTUML_CFG_FILE tag can be used to specify a
 # configuration file for plantuml.

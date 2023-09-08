@@ -1,4 +1,4 @@
 # DemoLib
 
-## stuff
-A demo library that builds shows the usage of C++
+A demo library that shows the usage of CMakeTools.
+

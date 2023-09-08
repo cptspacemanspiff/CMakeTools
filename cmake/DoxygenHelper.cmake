@@ -33,9 +33,31 @@ function(cmt_doxygen_helper)
             ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-tabs.js")
         endif()
 
+        # see if we have plantuml jar, if plantuml jar is found, set the jar path in doxygen file:
+        find_program(PLANTUML plantuml)
+
+        if(NOT ${PLANTUML} STREQUAL "PLANTUML-NOTFOUND")
+            set(DOXYGEN_PLANTUML_EXE_PATH ${PLANTUML})
+
+            # Check if linux:
+            if(UNIX AND NOT APPLE)
+                execute_process(COMMAND "bash" "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/get_plantuml_jar_path.sh" "${DOXYGEN_PLANTUML_EXE_PATH}"
+                    OUTPUT_VARIABLE DOXYGEN_PLANTUML_JAR_PATH
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    COMMAND_ECHO NONE)
+                message(STATUS "Plantumljar found: ${DOXYGEN_PLANTUML_JAR_PATH}")
+            else()
+                message(WARNING "Plantuml found, but do not currently know how to parse out the jar path on non unix systems.")
+            endif()
+            # parse the file to find the plantuml jar path:
+        endif()
+
+        set(DOXYGEN_PROJECT_BRIEF "${CMTFCN_PROJECT_BRIEF}")
+
         # replace semicolon in list with new line:
         string(REPLACE ";" " " DOXYGEN_SOURCES "${CMTFCN_DIRECTORIES}")
 
+        # set the output directory:
         set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/doc/${PROJECT_NAME}")
 
         # create the directory if it does not exist:
@@ -46,9 +68,7 @@ function(cmt_doxygen_helper)
 
         configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
 
-        message("Doxygen build started")
-
-        add_custom_target(${CMTFCN_PROJECT_NAME}_doc_doxygen ALL
+        add_custom_target(${PROJECT_NAME}_doc_doxygen ALL
             COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             COMMENT "Generating API documentation with Doxygen"
