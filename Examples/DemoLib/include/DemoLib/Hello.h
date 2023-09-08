@@ -14,12 +14,20 @@ namespace DemoLib {
  * Provides a public api to a abstract base class that simply prints 'hello
  * world' in a given language. The language is determined by the type passed to
  * the static factory method on the base class.
- *
+   @startuml
+      actor Alice
+      actor Bob
+      component World
+      Alice -r-> World: Hello!
+      Bob -r-> World: Hola!
+      Bob -[hidden]u-> Alice: Hi!
+   @enduml
  */
 class DemoLibHello_EXPORT HelloBase {
 public:
   /**
    * @brief Factory function to create a localized instance of the hello class.
+   *
    *
    * @param type The language to use.
    * @return std::shared_ptr<HelloBase> Instance of the hello class.
