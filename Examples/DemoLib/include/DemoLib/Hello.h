@@ -5,6 +5,7 @@
 
 #include "DemoLib/LIB_export.h"
 #include <memory>
+#include <string>
 
 namespace DemoLib {
 /**
@@ -13,12 +14,23 @@ namespace DemoLib {
  */
 class DemoLibLIB_EXPORT HelloBase {
 public:
-  static HelloBase *create(const std::string type);
+  /**
+   * @brief Factory function to create a localized instance of the hello class
+   *
+   * @param type the language to use
+   * @return HelloBase* instance of the hello class
+   */
+  static std::shared_ptr<HelloBase> create(const std::string type);
 
-  virtual ~HelloBase() = 0;
+  // Pure virtual base class //
+  virtual ~HelloBase() = default;
+
+  /**
+   * @brief say hello
+   *
+   */
   virtual void hello() = 0;
 };
-}
-
+} // namespace DemoLib
 
 #endif // HELLO_H

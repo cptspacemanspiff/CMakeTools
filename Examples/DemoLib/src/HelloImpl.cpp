@@ -1,17 +1,23 @@
 #include <iostream>
+#include <memory>
 
 #include "DemoLib/Hello.h"
 #include "HelloImpl.h"
 // implement the factory object:
 namespace DemoLib {
 
-HelloBase *HelloBase::create(const std::string type) {
+std::shared_ptr<HelloBase> HelloBase::create(const std::string type) {
   if (type == "English") {
-    return new EnglishImpl();
+    return std::make_shared<EnglishImpl>();
   } else if (type == "Spanish") {
-    return new SpanishImpl();
+    return std::make_shared<SpanishImpl>();
   } else {
-    return nullptr;
+    throw std::runtime_error("Invalid Hello Type");
   }
 }
+
+void EnglishImpl::hello() { std::cout << "Hello World!" << std::endl; }
+
+void SpanishImpl::hello() { std::cout << "Hola Mundo!" << std::endl; }
+
 } // namespace DemoLib
