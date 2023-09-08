@@ -249,3 +249,5 @@ function(cmt_install_target target_name)
         COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
     )
 endfunction()
+
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/DoxygenHelper.cmake)
