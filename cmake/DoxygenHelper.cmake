@@ -8,6 +8,12 @@ function(cmt_doxygen_helper)
 
     find_package(Doxygen)
 
+    # We need to get passed in a list of directories to add:
+    if(NOT CMTFCN_DIRECTORIES)
+        message(FATAL_ERROR "cmt_doxygen_helper requires a list of directories to add")
+    endif()
+
+
     if(DOXYGEN_FOUND)
         set(DOXYGEN_AWESOME_CSS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/doxygen-awesome-css)
         set(USE_AWESOME_DOXYGEN_THEME ON)
@@ -22,10 +28,15 @@ function(cmt_doxygen_helper)
 
             set(DOXYGEN_HTML_EXTRA_FILES
                 "${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-darkmode-toggle.js \\
-                ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-fragment-copy-button.js \\
-                ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-paragraph-link.js \\    
-                ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-interactive-toc.js \\
-                ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-tabs.js")
+            ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-fragment-copy-button.js \\
+            ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-paragraph-link.js \\    
+            ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-interactive-toc.js \\
+            ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-tabs.js")
+
+            # replace semicolon in list with new line:
+            string(REPLACE ";" "\n" DOXYGEN_SOURCES "${CMTFCN_DIRECTORIES}")
+            
+            
         endif()
 
         set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
