@@ -13,7 +13,6 @@ function(cmt_doxygen_helper)
         message(FATAL_ERROR "cmt_doxygen_helper requires a list of directories to add")
     endif()
 
-
     if(DOXYGEN_FOUND)
         set(DOXYGEN_AWESOME_CSS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/doxygen-awesome-css)
         set(USE_AWESOME_DOXYGEN_THEME ON)
@@ -32,12 +31,15 @@ function(cmt_doxygen_helper)
             ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-paragraph-link.js \\    
             ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-interactive-toc.js \\
             ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-tabs.js")
-
-            # replace semicolon in list with new line:
-            string(REPLACE ";" "\n" DOXYGEN_SOURCES "${CMTFCN_DIRECTORIES}")
-            
-            
         endif()
+
+        # replace semicolon in list with new line:
+        string(REPLACE ";" " " DOXYGEN_SOURCES "${CMTFCN_DIRECTORIES}")
+
+        set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/doc/${PROJECT_NAME}")
+
+        # create the directory if it does not exist:
+        file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIRECTORY})
 
         set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
         set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)

@@ -9,5 +9,6 @@ cmt_doxygen_helper(
     PROJECT_BRIEF "A demo project using CMakeTools"
     DIRECTORIES
     "${PROJECT_SOURCE_DIR}/include"
+    "${PROJECT_SOURCE_DIR}/src"
     "${PROJECT_SOURCE_DIR}/README.md"
 )
