@@ -26,6 +26,9 @@ macro(cmt_project_setup)
     set(CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME})
 
     if("${PROJECT_NAME}" STREQUAL "${CMAKE_PROJECT_NAME}")
+
+        set(CMAKE_COLOR_DIAGNOSTICS ON CACHE BOOL "Use color in compiler diagnostics")
+
         # set option to build documentation.
         set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
