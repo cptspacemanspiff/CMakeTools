@@ -26,7 +26,6 @@ macro(cmt_project_setup)
     set(CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME})
 
     if("${PROJECT_NAME}" STREQUAL "${CMAKE_PROJECT_NAME}")
-
         set(CMAKE_COLOR_DIAGNOSTICS ON CACHE BOOL "Use color in compiler diagnostics")
 
         # set option to build documentation.
@@ -130,12 +129,20 @@ function(cmt_add_library target_name)
     # check if target is not a header only library:
     get_target_property(CMT_TARGET_TYPE ${CMT_TARGET_NAME} TYPE)
 
-    if(NOT ${CMT_TARGET_TYPE} STREQUAL "INTERFACE_LIBRARY" AND NOT CMTFCN_VISABLE_SYMBOLS)
+    if(NOT ${CMT_TARGET_TYPE} STREQUAL "INTERFACE_LIBRARY")
         include(GenerateExportHeader)
+
+        if(NOT CMTFCN_VISABLE_SYMBOLS)
+            set_target_properties(${CMT_TARGET_NAME} PROPERTIES
+                CXX_VISIBILITY_PRESET hidden
+                VISIBILITY_INLINES_HIDDEN 1)
+        endif()
+
         generate_export_header(${CMT_TARGET_NAME}
             EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_TARGET_NAME}_export.h
             EXPORT_MACRO_NAME ${CMT_DEDUPED_NAMESPACED_NAME}_EXPORT
         )
+
         target_sources(${CMT_TARGET_NAME}
             PUBLIC
             FILE_SET generatedheaders
