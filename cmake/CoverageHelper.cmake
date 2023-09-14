@@ -62,31 +62,31 @@ function(cmt_coverage_tests)
             message(FATAL_ERROR "gcov not found,")
         endif()
 
-        set(Coverage_NAME "coverage_test")
+        # set(Coverage_NAME "coverage_test")
 
-        set(GCOVR_HTML_EXEC_TESTS_CMD
-            ctest ${Coverage_EXECUTABLE_ARGS}
-        )
+        # set(GCOVR_HTML_EXEC_TESTS_CMD
+        #     ctest ${Coverage_EXECUTABLE_ARGS}
+        # )
 
-        # Create folder
-        set(GCOVR_HTML_FOLDER_CMD
-            ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/${Coverage_NAME}
-        )
+        # # Create folder
+        # set(GCOVR_HTML_FOLDER_CMD
+        #     ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/${Coverage_NAME}
+        # )
 
-        # Running gcovr
-        set(GCOVR_HTML_CMD
-            gcovr
-            --html ${PROJECT_BINARY_DIR}/${Coverage_NAME}/index.html --html-details
-            -r ${PROJECT_SOURCE_DIR}
-            ${GCOVR_ADDITIONAL_ARGS}
-            ${GCOVR_EXCLUDE_ARGS}
-            -o ${PROJECT_BINARY_DIR}/gcovr
-        )
+        # # Running gcovr
+        # set(GCOVR_HTML_CMD
+        #     gcovr
+        #     --html ${PROJECT_BINARY_DIR}/${Coverage_NAME}/index.html --html-details
+        #     -r ${PROJECT_SOURCE_DIR}
+        #     ${GCOVR_ADDITIONAL_ARGS}
+        #     ${GCOVR_EXCLUDE_ARGS}
+        #     -o ${PROJECT_BINARY_DIR}/gcovr
+        # )
 
-        add_custom_target("haddsfjf"
-            COMMAND ${GCOVR_HTML_FOLDER_CMD}
-            COMMAND ${GCOVR_HTML_EXEC_TESTS_CMD}
-            COMMAND ${GCOVR_HTML_CMD}
-            DEPENDS EEPUnitTests)
+        # add_custom_target("haddsfjf"
+        #     COMMAND ${GCOVR_HTML_FOLDER_CMD}
+        #     COMMAND ${GCOVR_HTML_EXEC_TESTS_CMD}
+        #     COMMAND ${GCOVR_HTML_CMD}
+        #     DEPENDS EEPUnitTests)
     endif()
 endfunction()
