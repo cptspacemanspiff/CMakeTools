@@ -25,3 +25,11 @@ So this has been built to solve my unhappy build system, please contribute if yo
   * Supporting multi-target builds.
 * cross compilation support
   * QEMU, ARM, x86 
+
+
+## Guide:
+
+### Code Coverage
+
+To build a code coverage (and generate coverage report) use the coverage cmake build type. This will automatically add targets that are specified as Covered to the code coverage analysis.
+

@@ -3,6 +3,10 @@
 # Top level project command that passes standard arguements to config, and does basic setup.
 cmake_minimum_required(VERSION 3.24)
 
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/BuildTypes.cmake)
+
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/CoverageHelper.cmake)
+
 macro(cmt_project_setup)
     message(DEBUG "Configuring project ${CMT_PROJECT_UNPARSED_ARGUMENTS}")
 
@@ -28,11 +32,18 @@ macro(cmt_project_setup)
     if("${PROJECT_NAME}" STREQUAL "${CMAKE_PROJECT_NAME}")
         set(CMAKE_COLOR_DIAGNOSTICS ON CACHE BOOL "Use color in compiler diagnostics")
 
+        cmt_configure_build_types()
+
         # set option to build documentation.
         set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
         option(BUILD_DOCUMENTATION "Build documentation" ON)
         option(BUILD_TESTS "Build tests" ON)
+
+        if(${BUILD_TESTS})
+            enable_testing()
+        endif()
+
         option(BUILD_EXAMPLES "Build examples" ON)
     endif()
 
@@ -55,7 +66,11 @@ macro(cmt_project_setup)
 endmacro()
 
 function(cmt_target_setup target_name)
-    cmake_parse_arguments("CMTFCN" "" "NAMESPACE;EXPORT_NAME" "" "${ARGN}")
+    cmake_parse_arguments("CMTFCN"
+        ""
+        "NAMESPACE;EXPORT_NAME;NO_COVERAGE"
+        ""
+        "${ARGN}")
 
     if(NOT DEFINED CMTFCN_NAMESPACE)
         message(FATAL_ERROR "cmt_target_setup requires a namespace")
@@ -87,11 +102,37 @@ function(cmt_target_setup target_name)
         ${PROJECT_BINARY_DIR}/tmp/${CMAKE_INSTALL_INCLUDEDIR}/${CMTFCN_NAMESPACE}/${CMTFCN_NAMESPACE}_version.cpp.in
         ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMTFCN_NAMESPACE}/${CMTFCN_NAMESPACE}_version.cpp
         @ONLY)
+
+    # enable verbose warnings on targets
+    target_compile_options(${target_name} PRIVATE
+        $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Wpedantic>
+        $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -Wpedantic>
+        $<$<CXX_COMPILER_ID:MSVC>:/W4>
+    )
+
+    if(NOT CMTFCN_NO_COVERAGE)
+        # only add the coverage options on Coverage build type:
+        target_compile_options(${target_name} PRIVATE
+            $<$<CONFIG:Coverage>:
+            $<$<CXX_COMPILER_ID:GNU>:--coverage>
+            $<$<CXX_COMPILER_ID:Clang>:--coverage>
+            $<$<CXX_COMPILER_ID:MSVC>:/PROFILE>
+            >
+        )
+
+        target_link_options(${target_name} PRIVATE
+            $<$<CONFIG:Coverage>:
+            $<$<CXX_COMPILER_ID:GNU>:--coverage>
+            $<$<CXX_COMPILER_ID:Clang>:--coverage>
+            $<$<CXX_COMPILER_ID:MSVC>:/PROFILE>
+            >
+        )
+    endif()
 endfunction()
 
 function(cmt_add_library target_name)
     cmake_parse_arguments("CMTFCN"
-        "NAMESPACED;VISABLE_SYMBOLS"
+        "NAMESPACED;VISABLE_SYMBOLS;NO_COVERAGE"
         "EXPORT_NAME"
         ""
         "${ARGN}")
@@ -145,7 +186,7 @@ function(cmt_add_library target_name)
 
         target_sources(${CMT_TARGET_NAME}
             PUBLIC
-            FILE_SET generatedheaders
+            FILE_SET HEADERS
             TYPE HEADERS
             BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}
             FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_TARGET_NAME}_export.h)
@@ -158,7 +199,10 @@ function(cmt_add_library target_name)
 endfunction()
 
 function(cmt_add_executable target_name)
-    cmake_parse_arguments("CMTFCN" "NAMESPACED" "EXPORT_NAME" "" "${ARGN}")
+    cmake_parse_arguments("CMTFCN"
+        "NAMESPACED;NO_COVERAGE"
+        "EXPORT_NAME"
+        "" "${ARGN}")
 
     set(CMT_NAMESPACE ${PROJECT_NAME})
 
