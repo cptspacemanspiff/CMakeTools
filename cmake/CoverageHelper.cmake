@@ -58,8 +58,9 @@ function(cmt_coverage_tests)
         message("Using gcc trying coverage:")
         find_program(GCOV_PATH gcovr)
 
-        if(NOT GCOV_PATH)
-            message(FATAL_ERROR "gcov not found,")
+        if(GCOV_PATH)
+        else()
+            message(WARNING "gcov not found, coverage report will not be generated.")
         endif()
 
         # set(Coverage_NAME "coverage_test")
