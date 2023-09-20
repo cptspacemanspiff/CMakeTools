@@ -34,6 +34,8 @@ macro(cmt_project_setup)
 
         cmt_configure_build_types()
 
+        cmt_build_coverage_setup()
+
         # set option to build documentation.
         set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

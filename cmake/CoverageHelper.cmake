@@ -22,6 +22,11 @@
 
 include(${CMAKE_CURRENT_LIST_DIR}/utils.cmake)
 
+function(cmt_build_coverage_setup)
+    option(CMT_COVERAGE_LCOV "Generate gcovr coverage reports" ON)
+    option(CMT_COVERAGE_GCOVR "Generate lcov coverage reports" ON)
+endfunction()
+
 function(cmt_coverage_setup_target target_name)
     # Parse the arguments:
     if(NOT BUILD_TESTS)
@@ -30,26 +35,14 @@ function(cmt_coverage_setup_target target_name)
         cmake_parse_arguments("CMTFCN"
             ""
             ""
-            "EXCLUDE;EXTRA_INCLUDES;EXTRA_BASEDIRS"
+            ""
             "${ARGN}")
 
-        # by default coverage is ran on the header and source directory filesets.
-        # parse the header.
-
-        # get the sources of the target.
-        cmt_get_target_sources_realpath(target_sources TARGET ${target_name})
-        message(DEBUG "target_sources: ${target_sources}")
-
-        # get the public filesets of the target.
-        get_target_property(target_public_filesets ${target_name} HEADER_SET_cmt_public_headers)
-        message(DEBUG "target_public_filesets: ${target_public_filesets}")
-
-        get_target_property(target_interface_filesets ${target_name} HEADER_SET_cmt_interface_headers)
-        message(DEBUG "target_interface_filesets: ${target_interface_filesets}")
-
-        # get the private filesets of the target.
-        get_target_property(target_private_filesets ${target_name} HEADER_SET_cmt_private_headers)
-        message(DEBUG "target_private_filesets: ${target_private_filesets}")
+        # coverage can only be built by clang and gcc (currently).
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        else()
+            message(FATAL_ERROR "Coverage report is not supported for compiler: ${CMAKE_CXX_COMPILER_ID}")
+        endif()
 
         # there is a global coverage target that runs all the unit tests, and then generates the coverage report. We are appending our info to it.
         if(NOT TARGET CMT_CoverageTarget)
@@ -57,51 +50,98 @@ function(cmt_coverage_setup_target target_name)
 
             # set the output directory:
             set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/coverage")
-
-            add_custom_target(CMT_CoverageTarget SOURCES "${OUTPUT_DIR}/coverage.xml")
-
-            # add the properies with default empty values:
+            add_custom_target(CMT_CoverageTarget)
             set_target_properties(CMT_CoverageTarget
                 PROPERTIES
                 CMT_COVERAGE_SOURCES ""
                 CMT_COVERAGE_FILESETS "")
 
-            get_cmake_property(CMT_COVERAGE_EXCLUDES GLOBAL PROPERTY CMT_COVERAGE_EXCLUDES)
+            set(LLVM_ADDITIONAL_ARGS "")
+
+            # wif we compiled with LLVM we need to use llvm-cov instead of gcov:
+            if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+                find_program(LLVM_COV_PATH llvm-cov)
+                set(GCOVR_LLVM_ADDITIONAL_ARGS "--gcov-executable" "${LLVM_COV_PATH} gcov")
+                # set(LCOV_LLVM_ADDITIONAL_ARGS "--gcov-tool" "${LLVM_COV_PATH} gcov")
+                # above does not work, create a symbolic link to llvm-cov named gcov:
+                # file(CREATE_LINK <original> <linkname> [RESULT <result>] [COPY_ON_ERROR] [SYMBOLIC])
+                file(CREATE_LINK "${LLVM_COV_PATH}" "${CMAKE_BINARY_DIR}/coverage/gcov" SYMBOLIC)
+                set(LCOV_LLVM_ADDITIONAL_ARGS "--gcov-tool" "${CMAKE_BINARY_DIR}/coverage/gcov")
+            endif()
+
+            # common commands:
+            set(TEST_COMMAND "ctest" "-C" "$<CONFIG>" "--output-on-failure")
 
             find_program(GCOVR_PATH gcovr)
 
-            if(GCOVR_PATH)
-            else()
-                message(WARNING "gcov not found, coverage report will not be generated.")
+            if(CMT_COVERAGE_GCOVR)
+                if(NOT GCOVR_PATH)
+                    message(WARNING "gcovr not found, lcov coverage report will not be generated.")
+                else()
+                    # setup gcovr:
+                    set(GCROVR_OUTPUT_DIR "${OUTPUT_DIR}/gcovr")
+                    file(MAKE_DIRECTORY ${GCROVR_OUTPUT_DIR})
+                    set(GCOVR_COMMAND "${GCOVR_PATH}"
+                        "${GCOVR_LLVM_ADDITIONAL_ARGS}"
+                        "-r" "${CMAKE_SOURCE_DIR}"
+                        "-x" "${GCROVR_OUTPUT_DIR}/coverage.xml" # produce xml for github
+                        "-s" # produce commandline string for user:
+                        "--html-details" "${GCROVR_OUTPUT_DIR}/" # produce text for user
+                        "-f;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_SOURCES>,;-f;>"
+                        "-f;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_FILESETS>,;-f;>")
+
+                    set(COVERAGE_TRUE_MSG "Building Coverage Report with \\n ${GCOVR_COMMAND}")
+                    set(COVERAGE_FALSE_MSG "WARNING: Configuration is $<CONFIG> not Coverage - GCOVR The Coverage report not generated.")
+
+                    add_custom_command(OUTPUT ${GCROVR_OUTPUT_DIR}/coverage.xml
+                        POST_BUILD
+                        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                        COMMAND echo "$<IF:$<CONFIG:Coverage>,'${COVERAGE_TRUE_MSG}',${COVERAGE_FALSE_MSG}>"
+                        COMMAND "$<$<CONFIG:Coverage>:${TEST_COMMAND}>"
+                        COMMAND "$<$<CONFIG:Coverage>:${GCOVR_COMMAND}>"
+                        COMMAND_EXPAND_LISTS
+                        VERBATIM)
+                        target_sources(CMT_CoverageTarget PRIVATE ${GCROVR_OUTPUT_DIR}/coverage.xml)
+                endif()
             endif()
 
+            find_program(LCOV_PATH lcov)
+            find_program(GENHTML_PATH genhtml)
 
-            #create the dir if it doesn't exist:
-            file(MAKE_DIRECTORY ${OUTPUT_DIR})
+            if(LCOV_PATH)
+            # if(FALSE)
+                if(NOT(LCOV_PATH AND GENHTML_PATH))
+                    message(WARNING "lcov not found, lcov coverage report will not be generated.")
+                else()
+                    # setup and run lcov:
+                    set(LCOV_OUTPUT_DIR "${OUTPUT_DIR}/lcov")
+                    file(MAKE_DIRECTORY ${LCOV_OUTPUT_DIR})
+                    set(LCOV_COMMAND "${LCOV_PATH}"
+                        "${LCOV_LLVM_ADDITIONAL_ARGS}"
+                        "--capture"
+                        "--directory" "${CMAKE_BINARY_DIR}"
+                        "--output-file" "${LCOV_OUTPUT_DIR}/coverage.info"
+                        "--include;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_SOURCES>,;--include;>"
+                        "--include;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_FILESETS>,;--include;>")
+                    set(LCOV_GENHTML_COMMAND "${GENHTML_PATH}" "${LCOV_OUTPUT_DIR}/coverage.info" "--output-directory" "${LCOV_OUTPUT_DIR}/html")
 
-            set(CCOVR_COMMAND "${GCOVR_PATH}"
-                "-r" "${CMAKE_SOURCE_DIR}"
-                "-x" "${OUTPUT_DIR}/coverage.xml" # produce xml for github
-                "-s" # produce commandline string for user:
-                "--html-details" "${OUTPUT_DIR}/" # produce text for user
-                "-f;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_SOURCES>,;-f;>"
-                "-f;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_FILESETS>,;-f;>")
+                    set(COVERAGE_TRUE_MSG "Building Coverage Report with \\n ${LCOV_COMMAND}")
+                    set(COVERAGE_FALSE_MSG "WARNING: Configuration is $<CONFIG> not Coverage - The LCOV Coverage report not generated.")
 
-            set(CCOVR_TEST_COMMAND "ctest" "-C" "$<CONFIG>" "--output-on-failure")
+                    add_custom_command(OUTPUT ${LCOV_OUTPUT_DIR}/coverage.info
+                        POST_BUILD
+                        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                        COMMAND echo "$<IF:$<CONFIG:Coverage>,'${COVERAGE_TRUE_MSG}',${COVERAGE_FALSE_MSG}>"
+                        COMMAND "$<$<CONFIG:Coverage>:${TEST_COMMAND}>"
+                        COMMAND "$<$<CONFIG:Coverage>:${LCOV_COMMAND}>"
+                        COMMAND "$<$<CONFIG:Coverage>:${LCOV_GENHTML_COMMAND}>"
+                        COMMAND_EXPAND_LISTS
+                        VERBATIM)
 
-            # add custom commands to be ran by this target later:
-            # this command should only run in coverage mode.
-            set(COVERAGE_TRUE_MSG "Building Coverage Report with \\n ${CCOVR_COMMAND}")
-            set(COVERAGE_FALSE_MSG "WARNING: Configuration is $<CONFIG> not Coverage - The Coverage report not generated.")
-            add_custom_command(OUTPUT ${OUTPUT_DIR}/coverage.xml
-                POST_BUILD
-                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                # COMMAND echo "kdjfsakf"
-                COMMAND echo "$<IF:$<CONFIG:Coverage>,'${COVERAGE_TRUE_MSG}',${COVERAGE_FALSE_MSG}>"
-                COMMAND "$<$<CONFIG:Coverage>:${CCOVR_TEST_COMMAND}>"
-                COMMAND "$<$<CONFIG:Coverage>:${CCOVR_COMMAND}>"
-                COMMAND_EXPAND_LISTS
-                VERBATIM)
+                    target_sources(CMT_CoverageTarget PRIVATE ${LCOV_OUTPUT_DIR}/coverage.info)
+                endif()
+            endif()
+
         else()
             message(DEBUG "CMT_CoverageTarget already exists")
         endif()
@@ -109,7 +149,24 @@ function(cmt_coverage_setup_target target_name)
         # add dependnecies to coverage target:
         add_dependencies(CMT_CoverageTarget ${target_name})
 
-        # add properies to the target:
+        # By default coverage is ran on the header and source directory filesets.
+        # get the sources of the target helper provides absolute paths.
+        cmt_get_target_sources_realpath(target_sources TARGET ${target_name})
+        message(DEBUG "target_sources: ${target_sources}")
+
+        # get the public filesets of the target.
+        get_target_property(target_public_filesets ${target_name} HEADER_SET_cmt_public_headers)
+        message(DEBUG "target_public_filesets: ${target_public_filesets}")
+
+        # get the interface filesets of the target.
+        get_target_property(target_interface_filesets ${target_name} HEADER_SET_cmt_interface_headers)
+        message(DEBUG "target_interface_filesets: ${target_interface_filesets}")
+
+        # get the private filesets of the target.
+        get_target_property(target_private_filesets ${target_name} HEADER_SET_cmt_private_headers)
+        message(DEBUG "target_private_filesets: ${target_private_filesets}")
+
+        # add properies to the target, these get read via generator expression at build time:
         if(target_sources)
             cmt_append_target_property(CMT_CoverageTarget PROPERTY "CMT_COVERAGE_SOURCES" "${target_sources}")
         endif()
