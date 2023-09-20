@@ -41,7 +41,8 @@ function(cmt_coverage_setup_target target_name)
         # coverage can only be built by clang and gcc (currently).
         if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         else()
-            message(FATAL_ERROR "Coverage report is not supported for compiler: ${CMAKE_CXX_COMPILER_ID}")
+            # can only warn here because msvc is multiconfig generator.
+            message(WARNING "Coverage report is not supported for compiler: ${CMAKE_CXX_COMPILER_ID}")
         endif()
 
         # there is a global coverage target that runs all the unit tests, and then generates the coverage report. We are appending our info to it.
