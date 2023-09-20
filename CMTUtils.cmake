@@ -336,7 +336,7 @@ function(cmt_target_headers target)
     if(NOT CMTFCN_BASE_DIRS)
         # default basedir is the current dir:
         set(CMTFCN_BASE_DIRS "${CMAKE_CURRENT_LIST_DIR}")
-        message(DEBUG "No base dirs specified, using current dir: ${CMAKE_CURRENT_LIST_DIR}")
+        message(DEBUG "CMT_TARGET_HEADERS - No base dirs specified, using current dir: ${CMAKE_CURRENT_LIST_DIR}")
     endif()
 
     if(NOT CMTFCN_FILES)

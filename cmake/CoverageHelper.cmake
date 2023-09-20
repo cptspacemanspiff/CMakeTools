@@ -37,7 +37,7 @@ function(cmt_coverage_setup_target target_name)
         # parse the header.
 
         # get the sources of the target.
-        get_target_property(target_sources ${target_name} SOURCES)
+        cmt_get_target_sources_realpath(target_sources TARGET ${target_name})
         message(DEBUG "target_sources: ${target_sources}")
 
         # get the public filesets of the target.
@@ -53,8 +53,12 @@ function(cmt_coverage_setup_target target_name)
 
         # there is a global coverage target that runs all the unit tests, and then generates the coverage report. We are appending our info to it.
         if(NOT TARGET CMT_CoverageTarget)
-            message(DEBUG "Creating CmtGlobalCoverageTarget")
-            add_custom_target(CMT_CoverageTarget)
+            message(DEBUG "Creating CMT_CoverageTarget")
+
+            # set the output directory:
+            set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/coverage")
+
+            add_custom_target(CMT_CoverageTarget SOURCES "${OUTPUT_DIR}/coverage.xml")
 
             # add the properies with default empty values:
             set_target_properties(CMT_CoverageTarget
@@ -66,16 +70,22 @@ function(cmt_coverage_setup_target target_name)
 
             find_program(GCOVR_PATH gcovr)
 
-            # string(REPLACE stuff "$<TARGET_PROPERTY:CMT_COVERAGE_SOURCES>")
             if(GCOVR_PATH)
             else()
                 message(WARNING "gcov not found, coverage report will not be generated.")
             endif()
 
-            set(CCOVR_COMMAND "${GCOVR_PATH}" 
+
+            #create the dir if it doesn't exist:
+            file(MAKE_DIRECTORY ${OUTPUT_DIR})
+
+            set(CCOVR_COMMAND "${GCOVR_PATH}"
                 "-r" "${CMAKE_SOURCE_DIR}"
-                "-f;$<JOIN:$<TARGET_PROPERTY:CMT_COVERAGE_SOURCES>,;-f;>"
-                "-f;$<JOIN:$<TARGET_PROPERTY:CMT_COVERAGE_FILESETS>,;-f;>")
+                "-x" "${OUTPUT_DIR}/coverage.xml" # produce xml for github
+                "-s" # produce commandline string for user:
+                "--html-details" "${OUTPUT_DIR}/" # produce text for user
+                "-f;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_SOURCES>,;-f;>"
+                "-f;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_FILESETS>,;-f;>")
 
             set(CCOVR_TEST_COMMAND "ctest" "-C" "$<CONFIG>" "--output-on-failure")
 
@@ -83,17 +93,17 @@ function(cmt_coverage_setup_target target_name)
             # this command should only run in coverage mode.
             set(COVERAGE_TRUE_MSG "Building Coverage Report with \\n ${CCOVR_COMMAND}")
             set(COVERAGE_FALSE_MSG "WARNING: Configuration is $<CONFIG> not Coverage - The Coverage report not generated.")
-            add_custom_command(TARGET CMT_CoverageTarget
+            add_custom_command(OUTPUT ${OUTPUT_DIR}/coverage.xml
                 POST_BUILD
                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                # COMMAND echo "kdjfsakf"
                 COMMAND echo "$<IF:$<CONFIG:Coverage>,'${COVERAGE_TRUE_MSG}',${COVERAGE_FALSE_MSG}>"
                 COMMAND "$<$<CONFIG:Coverage>:${CCOVR_TEST_COMMAND}>"
                 COMMAND "$<$<CONFIG:Coverage>:${CCOVR_COMMAND}>"
                 COMMAND_EXPAND_LISTS
-                VERBATIM
-                COMMAND)
+                VERBATIM)
         else()
-            message(DEBUG "CmtGlobalCoverageTarget already exists")
+            message(DEBUG "CMT_CoverageTarget already exists")
         endif()
 
         # add dependnecies to coverage target:
