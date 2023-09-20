@@ -78,6 +78,9 @@ function(cmt_coverage_setup_target target_name)
                     message(WARNING "gcovr not found, lcov coverage report will not be generated.")
                 else()
                     # setup gcovr:
+                    set(GCROVR_OUTPUT_DIR "${OUTPUT_DIR}/gcovr")
+                    file(MAKE_DIRECTORY ${GCROVR_OUTPUT_DIR})
+
                     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
                         find_program(LLVM_COV_PATH llvm-cov)
                         set(GCOVR_LLVM_ADDITIONAL_ARGS "--gcov-executable" "${LLVM_COV_PATH} gcov")
@@ -85,8 +88,6 @@ function(cmt_coverage_setup_target target_name)
                         set(GCOVR_LLVM_ADDITIONAL_ARGS "")
                     endif()
 
-                    set(GCROVR_OUTPUT_DIR "${OUTPUT_DIR}/gcovr")
-                    file(MAKE_DIRECTORY ${GCROVR_OUTPUT_DIR})
                     set(GCOVR_COMMAND "${GCOVR_PATH}"
                         "${GCOVR_LLVM_ADDITIONAL_ARGS}"
                         "-r" "${CMAKE_SOURCE_DIR}"
@@ -119,8 +120,13 @@ function(cmt_coverage_setup_target target_name)
                 if(NOT(LCOV_PATH AND GENHTML_PATH))
                     message(WARNING "lcov not found, lcov coverage report will not be generated.")
                 else()
+                    # setup and run lcov:
+                    set(LCOV_OUTPUT_DIR "${OUTPUT_DIR}/lcov")
+                    file(MAKE_DIRECTORY ${LCOV_OUTPUT_DIR})
+
                     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
                         find_program(LLVM_COV_PATH llvm-cov)
+
                         # set(LCOV_LLVM_ADDITIONAL_ARGS "--gcov-tool" "${LLVM_COV_PATH} gcov")
                         # above does not work, create a symbolic link to llvm-cov named gcov:
                         # file(CREATE_LINK <original> <linkname> [RESULT <result>] [COPY_ON_ERROR] [SYMBOLIC])
@@ -130,9 +136,6 @@ function(cmt_coverage_setup_target target_name)
                         set(GCOVR_LLVM_ADDITIONAL_ARGS "")
                     endif()
 
-                    # setup and run lcov:
-                    set(LCOV_OUTPUT_DIR "${OUTPUT_DIR}/lcov")
-                    file(MAKE_DIRECTORY ${LCOV_OUTPUT_DIR})
                     set(LCOV_COMMAND "${LCOV_PATH}"
                         "${LCOV_LLVM_ADDITIONAL_ARGS}"
                         "--capture"
