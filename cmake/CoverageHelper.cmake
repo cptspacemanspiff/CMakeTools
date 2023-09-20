@@ -1,12 +1,12 @@
-# This file sets up and runs the code coverage. Code coverage targets are 
+# This file sets up and runs the code coverage. Code coverage targets are
 # instrumented on a target by target basis. The coverage analysis is then done
 # on a file-by-file basis (or via specified directories).
-# there end up being 2 lists: 
+# there end up being 2 lists:
 # 1. targets that get coverage ran against them.
 # 2. unit tests executed for the coverage target.
-#
+# 3. coverage is unified across all projects.
 # a global coverage target is then created, which runs all the unit tests, and
-# then runs the coverage analysis. the combined output from all the unit tests 
+# then runs the coverage analysis. the combined output from all the unit tests
 # creates the report.
 #
 #
@@ -20,74 +20,100 @@
 # CMTUtils.cmake file in the cmt_setup_target function.
 # 2. Add coverage directories to the target.
 
+include(${CMAKE_CURRENT_LIST_DIR}/utils.cmake)
+
 function(cmt_coverage_setup_target target_name)
     # Parse the arguments:
-    cmake_parse_arguments("CMTFCN"
-        ""
-        ""
-        ""
-        "${ARGN}")
+    if(NOT BUILD_TESTS)
+        message(DEBUG "Not building tests, not adding coverage to target: ${target_name}")
+    else()
+        cmake_parse_arguments("CMTFCN"
+            ""
+            ""
+            "EXCLUDE;EXTRA_INCLUDES;EXTRA_BASEDIRS"
+            "${ARGN}")
 
-    # by default coverage is ran on the header and source directory filesets.
-    # parse the header and 
+        # by default coverage is ran on the header and source directory filesets.
+        # parse the header.
 
-    # get the sources of the target.
-    get_target_property(target_sources ${target_name} SOURCES)
+        # get the sources of the target.
+        get_target_property(target_sources ${target_name} SOURCES)
+        message(DEBUG "target_sources: ${target_sources}")
 
-    message(STATUS "target_sources: ${target_sources}")
+        # get the public filesets of the target.
+        get_target_property(target_public_filesets ${target_name} HEADER_SET_cmt_public_headers)
+        message(DEBUG "target_public_filesets: ${target_public_filesets}")
 
-    # get the filesets of the target.
-    get_target_property(target_filesets ${target_name} HEADER_SET)
+        get_target_property(target_interface_filesets ${target_name} HEADER_SET_cmt_interface_headers)
+        message(DEBUG "target_interface_filesets: ${target_interface_filesets}")
 
-    message(STATUS "target_filesets: ${target_filesets}")
-    # get the base dirs of the target headers:
-    get_target_property(target_header_base_dirs ${target_name} HEADER_DIRS)
+        # get the private filesets of the target.
+        get_target_property(target_private_filesets ${target_name} HEADER_SET_cmt_private_headers)
+        message(DEBUG "target_private_filesets: ${target_private_filesets}")
 
-    message(STATUS "target_header_base_dirs: ${target_header_base_dirs}")
+        # there is a global coverage target that runs all the unit tests, and then generates the coverage report. We are appending our info to it.
+        if(NOT TARGET CMT_CoverageTarget)
+            message(DEBUG "Creating CmtGlobalCoverageTarget")
+            add_custom_target(CMT_CoverageTarget)
 
-    # create a cache variable for the coverage variables:
-    list(APPEND CMT_COVERAGE_TARGETS ${target_name})
-    
+            # add the properies with default empty values:
+            set_target_properties(CMT_CoverageTarget
+                PROPERTIES
+                CMT_COVERAGE_SOURCES ""
+                CMT_COVERAGE_FILESETS "")
 
+            get_cmake_property(CMT_COVERAGE_EXCLUDES GLOBAL PROPERTY CMT_COVERAGE_EXCLUDES)
 
-endfunction()
+            find_program(GCOVR_PATH gcovr)
 
-function(cmt_coverage_tests)
-    # check if we are using gcc:
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-        message("Using gcc trying coverage:")
-        find_program(GCOV_PATH gcovr)
+            # string(REPLACE stuff "$<TARGET_PROPERTY:CMT_COVERAGE_SOURCES>")
+            if(GCOVR_PATH)
+            else()
+                message(WARNING "gcov not found, coverage report will not be generated.")
+            endif()
 
-        if(GCOV_PATH)
+            set(CCOVR_COMMAND "${GCOVR_PATH}" 
+                "-r" "${CMAKE_SOURCE_DIR}"
+                "-f;$<JOIN:$<TARGET_PROPERTY:CMT_COVERAGE_SOURCES>,;-f;>"
+                "-f;$<JOIN:$<TARGET_PROPERTY:CMT_COVERAGE_FILESETS>,;-f;>")
+
+            set(CCOVR_TEST_COMMAND "ctest" "-C" "$<CONFIG>" "--output-on-failure")
+
+            # add custom commands to be ran by this target later:
+            # this command should only run in coverage mode.
+            set(COVERAGE_TRUE_MSG "Building Coverage Report with \\n ${CCOVR_COMMAND}")
+            set(COVERAGE_FALSE_MSG "WARNING: Configuration is $<CONFIG> not Coverage - The Coverage report not generated.")
+            add_custom_command(TARGET CMT_CoverageTarget
+                POST_BUILD
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                COMMAND echo "$<IF:$<CONFIG:Coverage>,'${COVERAGE_TRUE_MSG}',${COVERAGE_FALSE_MSG}>"
+                COMMAND "$<$<CONFIG:Coverage>:${CCOVR_TEST_COMMAND}>"
+                COMMAND "$<$<CONFIG:Coverage>:${CCOVR_COMMAND}>"
+                COMMAND_EXPAND_LISTS
+                VERBATIM
+                COMMAND)
         else()
-            message(WARNING "gcov not found, coverage report will not be generated.")
+            message(DEBUG "CmtGlobalCoverageTarget already exists")
         endif()
 
-        # set(Coverage_NAME "coverage_test")
+        # add dependnecies to coverage target:
+        add_dependencies(CMT_CoverageTarget ${target_name})
 
-        # set(GCOVR_HTML_EXEC_TESTS_CMD
-        #     ctest ${Coverage_EXECUTABLE_ARGS}
-        # )
+        # add properies to the target:
+        if(target_sources)
+            cmt_append_target_property(CMT_CoverageTarget PROPERTY "CMT_COVERAGE_SOURCES" "${target_sources}")
+        endif()
 
-        # # Create folder
-        # set(GCOVR_HTML_FOLDER_CMD
-        #     ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/${Coverage_NAME}
-        # )
+        if(target_public_filesets)
+            cmt_append_target_property(CMT_CoverageTarget PROPERTY "CMT_COVERAGE_FILESETS" "${target_public_filesets}")
+        endif()
 
-        # # Running gcovr
-        # set(GCOVR_HTML_CMD
-        #     gcovr
-        #     --html ${PROJECT_BINARY_DIR}/${Coverage_NAME}/index.html --html-details
-        #     -r ${PROJECT_SOURCE_DIR}
-        #     ${GCOVR_ADDITIONAL_ARGS}
-        #     ${GCOVR_EXCLUDE_ARGS}
-        #     -o ${PROJECT_BINARY_DIR}/gcovr
-        # )
+        if(target_interface_filesets)
+            cmt_append_target_property(CMT_CoverageTarget PROPERTY "CMT_COVERAGE_FILESETS" "${target_interface_filesets}")
+        endif()
 
-        # add_custom_target("haddsfjf"
-        #     COMMAND ${GCOVR_HTML_FOLDER_CMD}
-        #     COMMAND ${GCOVR_HTML_EXEC_TESTS_CMD}
-        #     COMMAND ${GCOVR_HTML_CMD}
-        #     DEPENDS EEPUnitTests)
+        if(target_private_filesets)
+            cmt_append_target_property(CMT_CoverageTarget PROPERTY "CMT_COVERAGE_FILESETS" "${target_private_filesets}")
+        endif()
     endif()
 endfunction()

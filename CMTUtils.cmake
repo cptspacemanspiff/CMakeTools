@@ -267,10 +267,10 @@ function(cmt_install_target target_name)
         NAMELINK_COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
-        FILE_SET HEADERS
+        FILE_SET cmt_public_headers
         COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FILE_SET generatedheaders
+        FILE_SET cmt_interface_headers
         COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
@@ -286,10 +286,10 @@ function(cmt_install_target target_name)
                 NAMELINK_COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
                 ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                 COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
-                FILE_SET HEADERS
+                FILE_SET cmt_public_headers
                 COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
                 INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-                FILE_SET generatedheaders
+                FILE_SET cmt_interface_headers
                 COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
                 INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
             )
@@ -301,6 +301,54 @@ function(cmt_install_target target_name)
         NAMESPACE ${CMT_TARGET_NAMESPACE}::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
         COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
+    )
+endfunction()
+
+function(cmt_target_headers target)
+    cmake_parse_arguments("CMTFCN"
+        "PUBLIC;INTERFACE;PRIVATE"
+        ""
+        "BASE_DIRS;FILES"
+        "${ARGN}")
+
+    # only one of PUBLIC, INTERFACE, or PRIVATE can be set:
+    if((CMTFCN_PUBLIC AND CMTFCN_INTERFACE) OR
+        (CMTFCN_PUBLIC AND CMTFCN_PRIVATE) OR
+        (CMTFCN_INTERFACE AND CMTFCN_PRIVATE))
+        message(FATAL_ERROR "Only one of PUBLIC, INTERFACE, or PRIVATE can be set")
+    endif()
+
+    if(NOT CMTFCN_PUBLIC AND NOT CMTFCN_INTERFACE AND NOT CMTFCN_PRIVATE)
+        message(FATAL_ERROR "One of PUBLIC, INTERFACE, or PRIVATE must be set")
+    else()
+        if(CMTFCN_PUBLIC)
+            set(CMT_TARGET_HEADERS_SCOPE PUBLIC)
+            set(CMT_TARGET_HEADERS_NAME cmt_public_headers)
+        elseif(CMTFCN_INTERFACE)
+            set(CMT_TARGET_HEADERS_SCOPE INTERFACE)
+            set(CMT_TARGET_HEADERS_NAME cmt_interface_headers)
+        elseif(CMTFCN_PRIVATE)
+            set(CMT_TARGET_HEADERS_SCOPE PRIVATE)
+            set(CMT_TARGET_HEADERS_NAME cmt_private_headers)
+        endif()
+    endif()
+
+    if(NOT CMTFCN_BASE_DIRS)
+        # default basedir is the current dir:
+        set(CMTFCN_BASE_DIRS "${CMAKE_CURRENT_LIST_DIR}")
+        message(DEBUG "No base dirs specified, using current dir: ${CMAKE_CURRENT_LIST_DIR}")
+    endif()
+
+    if(NOT CMTFCN_FILES)
+        message(FATAL_ERROR "No files specified for cmt_target_headers")
+    endif()
+
+    target_sources(${target}
+        ${CMT_TARGET_HEADERS_SCOPE}
+        FILE_SET ${CMT_TARGET_HEADERS_NAME}
+        TYPE HEADERS
+        BASE_DIRS ${CMTFCN_BASE_DIRS}
+        FILES ${CMTFCN_FILES}
     )
 endfunction()
 

@@ -29,7 +29,16 @@ So this has been built to solve my unhappy build system, please contribute if yo
 
 ## Guide:
 
+In order to have a standardized build process there are three types of targets that cmaketools will make:
+
+1. Target level targets: These are your standard cmake targets/executables, an individual cmake target can have multiple of these, and they may or may not be exported and installed.
+2. Project level targets: These are things that are made once per project. Examples could be Documentation, or Packaging. 
+3. Build level targets: These are things that are made once per build, and can include meta-build artifacts (combined documentation, meta-rpm), CoverageReports, Static Analysis.
+
+The rational is that most things are done on a target by target basis, however t
+
 ### Code Coverage
 
 To build a code coverage (and generate coverage report) use the coverage cmake build type. This will automatically add targets that are specified as Covered to the code coverage analysis.
 
+##
