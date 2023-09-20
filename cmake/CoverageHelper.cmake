@@ -57,33 +57,23 @@ function(cmt_coverage_setup_target target_name)
                 CMT_COVERAGE_SOURCES ""
                 CMT_COVERAGE_FILESETS "")
 
-            # wif we compiled with LLVM we need to use llvm-cov instead of gcov:
-            if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-                find_program(LLVM_COV_PATH llvm-cov)
-                set(GCOVR_LLVM_ADDITIONAL_ARGS "--gcov-executable" "${LLVM_COV_PATH} gcov")
-
-                # set(LCOV_LLVM_ADDITIONAL_ARGS "--gcov-tool" "${LLVM_COV_PATH} gcov")
-                # above does not work, create a symbolic link to llvm-cov named gcov:
-                # file(CREATE_LINK <original> <linkname> [RESULT <result>] [COPY_ON_ERROR] [SYMBOLIC])
-                file(CREATE_LINK "${LLVM_COV_PATH}" "${CMAKE_BINARY_DIR}/coverage/gcov" SYMBOLIC)
-                set(LCOV_LLVM_ADDITIONAL_ARGS "--gcov-tool" "${CMAKE_BINARY_DIR}/coverage/gcov")
-            endif()
-
             # common commands:
             set(TEST_COMMAND "ctest" "-C" "$<CONFIG>" "--output-on-failure")
+            find_program(LLVM_COV_PATH llvm-cov)
 
             find_program(GCOVR_PATH gcovr)
 
             if(CMT_COVERAGE_GCOVR)
                 if(NOT GCOVR_PATH)
                     message(WARNING "gcovr not found, lcov coverage report will not be generated.")
+                elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT LLVM_COV_PATH)
+                    message(WARNING "llvm-cov not found compiled with clang, gcovr coverage report will not be generated.")
                 else()
                     # setup gcovr:
                     set(GCROVR_OUTPUT_DIR "${OUTPUT_DIR}/gcovr")
                     file(MAKE_DIRECTORY ${GCROVR_OUTPUT_DIR})
 
                     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-                        find_program(LLVM_COV_PATH llvm-cov)
                         set(GCOVR_LLVM_ADDITIONAL_ARGS "--gcov-executable" "${LLVM_COV_PATH} gcov")
                     else()
                         set(GCOVR_LLVM_ADDITIONAL_ARGS "")
@@ -116,18 +106,18 @@ function(cmt_coverage_setup_target target_name)
             find_program(LCOV_PATH lcov)
             find_program(GENHTML_PATH genhtml)
 
-            if(LCOV_PATH)
+            if(CMT_COVERAGE_LCOV)
                 # if(FALSE)
                 if(NOT(LCOV_PATH AND GENHTML_PATH))
                     message(WARNING "lcov not found, lcov coverage report will not be generated.")
+                elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT LLVM_COV_PATH)
+                    message(WARNING "llvm-cov not found compiled with clang, lcov coverage report will not be generated.")
                 else()
                     # setup and run lcov:
                     set(LCOV_OUTPUT_DIR "${OUTPUT_DIR}/lcov")
                     file(MAKE_DIRECTORY ${LCOV_OUTPUT_DIR})
 
                     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-                        find_program(LLVM_COV_PATH llvm-cov)
-
                         # set(LCOV_LLVM_ADDITIONAL_ARGS "--gcov-tool" "${LLVM_COV_PATH} gcov")
                         # above does not work, create a symbolic link to llvm-cov named gcov:
                         # file(CREATE_LINK <original> <linkname> [RESULT <result>] [COPY_ON_ERROR] [SYMBOLIC])
