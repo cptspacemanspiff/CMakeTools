@@ -1,5 +1,12 @@
-cmt_add_executable(EXE hello.cpp)
+cmt_add_library(Hello SHARED HelloImpl.cpp)
+target_sources(Hello
+    PUBLIC
+    FILE_SET HEADERS
+    BASE_DIRS ${PROJECT_SOURCE_DIR}/include
+    FILES
+    ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/Hello.h
+)
+cmt_install_target(Hello)
 
-cmt_add_executable(EXE NAMESPACED hello.cpp)
-
-# add_executable(test EXPORT_NAME Hlesdasd hello.cpp)
+# cmt_add_executable(EXE hello.cpp)
+# cmt_install_target(EXE)

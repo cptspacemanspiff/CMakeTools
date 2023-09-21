@@ -3,6 +3,10 @@
 # Top level project command that passes standard arguements to config, and does basic setup.
 cmake_minimum_required(VERSION 3.24)
 
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/BuildTypes.cmake)
+
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/CoverageHelper.cmake)
+
 macro(cmt_project_setup)
     message(DEBUG "Configuring project ${CMT_PROJECT_UNPARSED_ARGUMENTS}")
 
@@ -26,29 +30,49 @@ macro(cmt_project_setup)
     set(CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME})
 
     if("${PROJECT_NAME}" STREQUAL "${CMAKE_PROJECT_NAME}")
+        set(CMAKE_COLOR_DIAGNOSTICS ON CACHE BOOL "Use color in compiler diagnostics")
+
+        cmt_configure_build_types()
+
+        cmt_build_coverage_setup()
+
         # set option to build documentation.
+        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
         option(BUILD_DOCUMENTATION "Build documentation" ON)
         option(BUILD_TESTS "Build tests" ON)
-        option(BUILD_EXAMPLES "Build examples" ON)
 
-        if(BUILD_DOCUMENTATION)
-            # find_package(Doxygen REQUIRED)
-            add_subdirectory(doc)
-        endif()
-
-        if(BUILD_TESTS)
+        if(${BUILD_TESTS})
             enable_testing()
-            add_subdirectory(tests)
         endif()
 
-        if(BUILD_EXAMPLES)
-            add_subdirectory(examples)
-        endif()
+        option(BUILD_EXAMPLES "Build examples" ON)
+    endif()
+
+    if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/src)
+        add_subdirectory(src)
+    endif()
+
+    if(BUILD_DOCUMENTATION AND EXISTS ${CMAKE_CURRENT_LIST_DIR}/doc)
+        # Any dependecies are found in the actual documentation cmake file.
+        add_subdirectory(doc)
+    endif()
+
+    if(BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_LIST_DIR}/test)
+        add_subdirectory(test)
+    endif()
+
+    if(BUILD_EXAMPLES AND EXISTS ${CMAKE_CURRENT_LIST_DIR}/examples)
+        add_subdirectory(examples)
     endif()
 endmacro()
 
 function(cmt_target_setup target_name)
-    cmake_parse_arguments("CMTFCN" "" "NAMESPACE;EXPORT_NAME" "" "${ARGN}")
+    cmake_parse_arguments("CMTFCN"
+        ""
+        "NAMESPACE;EXPORT_NAME;NO_COVERAGE"
+        ""
+        "${ARGN}")
 
     if(NOT DEFINED CMTFCN_NAMESPACE)
         message(FATAL_ERROR "cmt_target_setup requires a namespace")
@@ -80,11 +104,37 @@ function(cmt_target_setup target_name)
         ${PROJECT_BINARY_DIR}/tmp/${CMAKE_INSTALL_INCLUDEDIR}/${CMTFCN_NAMESPACE}/${CMTFCN_NAMESPACE}_version.cpp.in
         ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMTFCN_NAMESPACE}/${CMTFCN_NAMESPACE}_version.cpp
         @ONLY)
+
+    # enable verbose warnings on targets
+    target_compile_options(${target_name} PRIVATE
+        $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Wpedantic>
+        $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -Wpedantic>
+        $<$<CXX_COMPILER_ID:MSVC>:/W4>
+    )
+
+    if(NOT CMTFCN_NO_COVERAGE)
+        # only add the coverage options on Coverage build type:
+        target_compile_options(${target_name} PRIVATE
+            $<$<CONFIG:Coverage>:
+            $<$<CXX_COMPILER_ID:GNU>:--coverage>
+            $<$<CXX_COMPILER_ID:Clang>:--coverage>
+            $<$<CXX_COMPILER_ID:MSVC>:/PROFILE>
+            >
+        )
+
+        target_link_options(${target_name} PRIVATE
+            $<$<CONFIG:Coverage>:
+            $<$<CXX_COMPILER_ID:GNU>:--coverage>
+            $<$<CXX_COMPILER_ID:Clang>:--coverage>
+            $<$<CXX_COMPILER_ID:MSVC>:/PROFILE>
+            >
+        )
+    endif()
 endfunction()
 
 function(cmt_add_library target_name)
     cmake_parse_arguments("CMTFCN"
-        "NAMESPACED;VISABLE_SYMBOLS"
+        "NAMESPACED;VISABLE_SYMBOLS;NO_COVERAGE"
         "EXPORT_NAME"
         ""
         "${ARGN}")
@@ -122,15 +172,23 @@ function(cmt_add_library target_name)
     # check if target is not a header only library:
     get_target_property(CMT_TARGET_TYPE ${CMT_TARGET_NAME} TYPE)
 
-    if(NOT ${CMT_TARGET_TYPE} STREQUAL "INTERFACE_LIBRARY" AND NOT CMTFCN_VISABLE_SYMBOLS)
+    if(NOT ${CMT_TARGET_TYPE} STREQUAL "INTERFACE_LIBRARY")
         include(GenerateExportHeader)
+
+        if(NOT CMTFCN_VISABLE_SYMBOLS)
+            set_target_properties(${CMT_TARGET_NAME} PROPERTIES
+                CXX_VISIBILITY_PRESET hidden
+                VISIBILITY_INLINES_HIDDEN 1)
+        endif()
+
         generate_export_header(${CMT_TARGET_NAME}
             EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_TARGET_NAME}_export.h
             EXPORT_MACRO_NAME ${CMT_DEDUPED_NAMESPACED_NAME}_EXPORT
         )
+
         target_sources(${CMT_TARGET_NAME}
             PUBLIC
-            FILE_SET generatedheaders
+            FILE_SET HEADERS
             TYPE HEADERS
             BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}
             FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_TARGET_NAME}_export.h)
@@ -143,7 +201,10 @@ function(cmt_add_library target_name)
 endfunction()
 
 function(cmt_add_executable target_name)
-    cmake_parse_arguments("CMTFCN" "NAMESPACED" "EXPORT_NAME" "" "${ARGN}")
+    cmake_parse_arguments("CMTFCN"
+        "NAMESPACED;NO_COVERAGE"
+        "EXPORT_NAME"
+        "" "${ARGN}")
 
     set(CMT_NAMESPACE ${PROJECT_NAME})
 
@@ -208,10 +269,10 @@ function(cmt_install_target target_name)
         NAMELINK_COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
-        FILE_SET HEADERS
+        FILE_SET cmt_public_headers
         COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FILE_SET generatedheaders
+        FILE_SET cmt_interface_headers
         COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
@@ -227,10 +288,10 @@ function(cmt_install_target target_name)
                 NAMELINK_COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
                 ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                 COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
-                FILE_SET HEADERS
+                FILE_SET cmt_public_headers
                 COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
                 INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-                FILE_SET generatedheaders
+                FILE_SET cmt_interface_headers
                 COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
                 INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
             )
@@ -244,3 +305,53 @@ function(cmt_install_target target_name)
         COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
     )
 endfunction()
+
+function(cmt_target_headers target)
+    cmake_parse_arguments("CMTFCN"
+        "PUBLIC;INTERFACE;PRIVATE"
+        ""
+        "BASE_DIRS;FILES"
+        "${ARGN}")
+
+    # only one of PUBLIC, INTERFACE, or PRIVATE can be set:
+    if((CMTFCN_PUBLIC AND CMTFCN_INTERFACE) OR
+        (CMTFCN_PUBLIC AND CMTFCN_PRIVATE) OR
+        (CMTFCN_INTERFACE AND CMTFCN_PRIVATE))
+        message(FATAL_ERROR "Only one of PUBLIC, INTERFACE, or PRIVATE can be set")
+    endif()
+
+    if(NOT CMTFCN_PUBLIC AND NOT CMTFCN_INTERFACE AND NOT CMTFCN_PRIVATE)
+        message(FATAL_ERROR "One of PUBLIC, INTERFACE, or PRIVATE must be set")
+    else()
+        if(CMTFCN_PUBLIC)
+            set(CMT_TARGET_HEADERS_SCOPE PUBLIC)
+            set(CMT_TARGET_HEADERS_NAME cmt_public_headers)
+        elseif(CMTFCN_INTERFACE)
+            set(CMT_TARGET_HEADERS_SCOPE INTERFACE)
+            set(CMT_TARGET_HEADERS_NAME cmt_interface_headers)
+        elseif(CMTFCN_PRIVATE)
+            set(CMT_TARGET_HEADERS_SCOPE PRIVATE)
+            set(CMT_TARGET_HEADERS_NAME cmt_private_headers)
+        endif()
+    endif()
+
+    if(NOT CMTFCN_BASE_DIRS)
+        # default basedir is the current dir:
+        set(CMTFCN_BASE_DIRS "${CMAKE_CURRENT_LIST_DIR}")
+        message(DEBUG "CMT_TARGET_HEADERS - No base dirs specified, using current dir: ${CMAKE_CURRENT_LIST_DIR}")
+    endif()
+
+    if(NOT CMTFCN_FILES)
+        message(FATAL_ERROR "No files specified for cmt_target_headers")
+    endif()
+
+    target_sources(${target}
+        ${CMT_TARGET_HEADERS_SCOPE}
+        FILE_SET ${CMT_TARGET_HEADERS_NAME}
+        TYPE HEADERS
+        BASE_DIRS ${CMTFCN_BASE_DIRS}
+        FILES ${CMTFCN_FILES}
+    )
+endfunction()
+
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/DoxygenHelper.cmake)
