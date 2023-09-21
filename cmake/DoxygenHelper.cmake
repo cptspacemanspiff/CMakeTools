@@ -6,7 +6,7 @@ function(cmt_doxygen_helper)
         "DIRECTORIES;TARGETS"
         "${ARGN}")
 
-    find_package(Doxygen)
+    find_package(Doxygen REQUIRED dot)
 
     # We need to get passed in a list of directories to add:
     if(NOT CMTFCN_DIRECTORIES AND NOT CMTFCN_TARGETS)
@@ -60,9 +60,9 @@ function(cmt_doxygen_helper)
             set(DOXYGEN_HTML_EXTRA_STYLESHEET
                 "${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome.css \\
             ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-sidebar-only.css \\
-            ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-sidebar-only-darkmode-toggle.css ")#\\
-            # ${DOXYGEN_AWESOME_CSS_DIR}/custom-alternative.css")
+            ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-sidebar-only-darkmode-toggle.css ") # \\
 
+            # ${DOXYGEN_AWESOME_CSS_DIR}/custom-alternative.css")
             set(DOXYGEN_HTML_EXTRA_FILES
                 "${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-darkmode-toggle.js \\
             ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-fragment-copy-button.js \\
@@ -112,7 +112,7 @@ function(cmt_doxygen_helper)
         foreach(PATH ${CMTFCN_DIRECTORIES})
             # if it is a directory, glob it and add all files to dependency list:
             if(IS_DIRECTORY ${PATH})
-                file(GLOB_RECURSE  TMP_PATHS CONFIGURE_DEPENDS ${PATH}/* )
+                file(GLOB_RECURSE TMP_PATHS CONFIGURE_DEPENDS ${PATH}/*)
             endif()
 
             list(APPEND DIRECTORY_DEPENDENCY_LIST ${TMP_PATHS})
@@ -125,7 +125,11 @@ function(cmt_doxygen_helper)
             COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             COMMENT "Generating API documentation with Doxygen"
-            DEPENDS "${TARGET_DEPENDENCY_LIST}" "${DIRECTORY_DEPENDENCY_LIST}" "${CMAKE_CURRENT_FUNCTION_LIST_FILE}"
+            DEPENDS
+            "${TARGET_DEPENDENCY_LIST}"
+            "${DIRECTORY_DEPENDENCY_LIST}"
+            "${CMAKE_CURRENT_FUNCTION_LIST_FILE}"
+            "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
             VERBATIM
         )
 
