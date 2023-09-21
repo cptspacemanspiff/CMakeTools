@@ -56,7 +56,8 @@ function(cmt_coverage_setup_target target_name)
             set_target_properties(CMT_CoverageTarget
                 PROPERTIES
                 CMT_COVERAGE_SOURCES ""
-                CMT_COVERAGE_FILESETS "")
+                CMT_COVERAGE_FILESETS ""
+                CMT_COVERAGE_DEPS "")
 
             # common commands:
             set(TEST_COMMAND "ctest" "-C" "$<CONFIG>" "--output-on-failure")
@@ -82,6 +83,7 @@ function(cmt_coverage_setup_target target_name)
 
                     set(GCOVR_COMMAND "${GCOVR_PATH}"
                         "${GCOVR_LLVM_ADDITIONAL_ARGS}"
+                        "-d"
                         "-r" "${CMAKE_SOURCE_DIR}"
                         "-x" "${GCROVR_OUTPUT_DIR}/coverage.xml" # produce xml for github
                         "-s" # produce commandline string for user:
@@ -98,6 +100,9 @@ function(cmt_coverage_setup_target target_name)
                         COMMAND echo "$<IF:$<CONFIG:Coverage>,'${COVERAGE_TRUE_MSG}',${COVERAGE_FALSE_MSG}>"
                         COMMAND "$<$<CONFIG:Coverage>:${TEST_COMMAND}>"
                         COMMAND "$<$<CONFIG:Coverage>:${GCOVR_COMMAND}>"
+                        DEPENDS "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_SOURCES>"
+                                "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_FILESETS>"
+                                "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_DEPS>"
                         COMMAND_EXPAND_LISTS
                         VERBATIM)
                     target_sources(CMT_CoverageTarget PRIVATE ${GCROVR_OUTPUT_DIR}/coverage.xml)
@@ -197,8 +202,42 @@ function(cmt_coverage_setup_target target_name)
     endif()
 endfunction()
 
-function(cmt_coverage_add_dependencies target)
+function(cmt_coverage_add_dependencies target_name)
     if(BUILD_TESTS AND(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
-        add_dependencies(CMT_CoverageTarget ${target})
+        add_dependencies(CMT_CoverageTarget ${target_name})
+
+        # By default coverage is ran on the header and source directory filesets.
+        # get the sources of the target helper provides absolute paths.
+        cmt_get_target_sources_realpath(target_sources TARGET ${target_name})
+        message(DEBUG "target_sources: ${target_sources}")
+
+        # get the public filesets of the target.
+        get_target_property(target_public_filesets ${target_name} HEADER_SET_cmt_public_headers)
+        message(DEBUG "target_public_filesets: ${target_public_filesets}")
+
+        # get the interface filesets of the target.
+        get_target_property(target_interface_filesets ${target_name} HEADER_SET_cmt_interface_headers)
+        message(DEBUG "target_interface_filesets: ${target_interface_filesets}")
+
+        # get the private filesets of the target.
+        get_target_property(target_private_filesets ${target_name} HEADER_SET_cmt_private_headers)
+        message(DEBUG "target_private_filesets: ${target_private_filesets}")
+
+        # add properies to the target, these get read via generator expression at build time:
+        if(target_sources)
+            cmt_append_target_property(CMT_CoverageTarget PROPERTY "CMT_COVERAGE_DEPS" "${target_sources}")
+        endif()
+
+        if(target_public_filesets)
+            cmt_append_target_property(CMT_CoverageTarget PROPERTY "CMT_COVERAGE_DEPS" "${target_public_filesets}")
+        endif()
+
+        if(target_interface_filesets)
+            cmt_append_target_property(CMT_CoverageTarget PROPERTY "CMT_COVERAGE_DEPS" "${target_interface_filesets}")
+        endif()
+
+        if(target_private_filesets)
+            cmt_append_target_property(CMT_CoverageTarget PROPERTY "CMT_COVERAGE_DEPS" "${target_private_filesets}")
+        endif()
     endif()
 endfunction()
