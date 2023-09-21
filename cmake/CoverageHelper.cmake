@@ -43,6 +43,7 @@ function(cmt_coverage_setup_target target_name)
         else()
             # can only warn here because msvc is multiconfig generator.
             message(WARNING "Coverage report is not supported for compiler: ${CMAKE_CXX_COMPILER_ID}")
+            return()
         endif()
 
         # there is a global coverage target that runs all the unit tests, and then generates the coverage report. We are appending our info to it.

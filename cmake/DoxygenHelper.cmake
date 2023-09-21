@@ -60,8 +60,8 @@ function(cmt_doxygen_helper)
             set(DOXYGEN_HTML_EXTRA_STYLESHEET
                 "${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome.css \\
             ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-sidebar-only.css \\
-            ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-sidebar-only-darkmode-toggle.css \\
-            ${DOXYGEN_AWESOME_CSS_DIR}/custom-alternative.css")
+            ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-sidebar-only-darkmode-toggle.css ")#\\
+            # ${DOXYGEN_AWESOME_CSS_DIR}/custom-alternative.css")
 
             set(DOXYGEN_HTML_EXTRA_FILES
                 "${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-darkmode-toggle.js \\
