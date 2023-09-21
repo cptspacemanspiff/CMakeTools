@@ -125,7 +125,7 @@ function(cmt_doxygen_helper)
             COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             COMMENT "Generating API documentation with Doxygen"
-            DEPENDS "${TARGET_DEPENDENCY_LIST}" "${DIRECTORY_DEPENDENCY_LIST}"
+            DEPENDS "${TARGET_DEPENDENCY_LIST}" "${DIRECTORY_DEPENDENCY_LIST}" "${CMAKE_CURRENT_FUNCTION_LIST_FILE}"
             VERBATIM
         )
 
