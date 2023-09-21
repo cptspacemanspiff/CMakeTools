@@ -6,7 +6,7 @@ function(cmt_doxygen_helper)
         "DIRECTORIES;TARGETS"
         "${ARGN}")
 
-    find_package(Doxygen REQUIRED dot)
+    find_package(Doxygen COMPONENTS dot)
 
     # We need to get passed in a list of directories to add:
     if(NOT CMTFCN_DIRECTORIES AND NOT CMTFCN_TARGETS)
@@ -51,7 +51,7 @@ function(cmt_doxygen_helper)
         endif()
     endforeach()
 
-    if(DOXYGEN_FOUND)
+    if(DOXYGEN_FOUND AND TARGET Doxygen::dot)
         set(DOXYGEN_AWESOME_CSS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/doxygen-awesome-css)
         set(USE_AWESOME_DOXYGEN_THEME ON)
 
@@ -71,12 +71,17 @@ function(cmt_doxygen_helper)
             ${DOXYGEN_AWESOME_CSS_DIR}/doxygen-awesome-tabs.js")
         endif()
 
+        # get the dogygen dot path:
+        get_target_property(DOXYGEN_DOT_EXECUTABLE Doxygen::dot IMPORTED_LOCATION)
+        message(DEBUG "DOXYGEN_DOT_EXECUTABLE: ${DOXYGEN_DOT_EXECUTABLE}")
+
         # see if we have plantuml jar, if plantuml jar is found, set the jar path in doxygen file:
         find_program(PLANTUML plantuml)
 
         if(NOT ${PLANTUML} STREQUAL "PLANTUML-NOTFOUND")
             set(DOXYGEN_PLANTUML_EXE_PATH ${PLANTUML})
-
+            message(DEBUG "Plantuml found: ${DOXYGEN_PLANTUML_EXE_PATH}")
+            
             # Check if linux:
             if(UNIX AND NOT APPLE)
                 execute_process(COMMAND "bash" "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/get_plantuml_jar_path.sh" "${DOXYGEN_PLANTUML_EXE_PATH}"
