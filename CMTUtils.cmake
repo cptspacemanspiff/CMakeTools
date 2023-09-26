@@ -125,7 +125,7 @@ endfunction()
 
 function(cmt_add_library target_name)
     cmake_parse_arguments("CMTFCN"
-        "NAMESPACED;VISABLE_SYMBOLS;NO_COVERAGE"
+        "NAMESPACED;VISIBLE_SYMBOLS;NO_COVERAGE"
         "EXPORT_NAME"
         ""
         "${ARGN}")
@@ -165,7 +165,7 @@ function(cmt_add_library target_name)
     if(NOT ${CMT_TARGET_TYPE} STREQUAL "INTERFACE_LIBRARY")
         include(GenerateExportHeader)
 
-        if(NOT CMTFCN_VISABLE_SYMBOLS)
+        if(NOT CMTFCN_VISIBLE_SYMBOLS)
             set_target_properties(${CMT_TARGET_NAME} PROPERTIES
                 CXX_VISIBILITY_PRESET hidden
                 VISIBILITY_INLINES_HIDDEN 1)
@@ -177,9 +177,9 @@ function(cmt_add_library target_name)
         )
 
         set_target_properties(${CMT_TARGET_NAME} PROPERTIES
-            CMT_VISABILITY_GENERATED True
-            CMT_VISABILITY_EXPORT_MACRO "${CMT_DEDUPED_NAMESPACED_NAME}_EXPORT"
-            CMT_VISABILITY_EXPORT_FILE "${CMT_TARGET_NAME}_export.h"
+            CMT_VISIBILITY_GENERATED True
+            CMT_VISIBILITY_EXPORT_MACRO "${CMT_DEDUPED_NAMESPACED_NAME}_EXPORT"
+            CMT_VISIBILITY_EXPORT_FILE "${CMT_TARGET_NAME}_export.h"
         )
 
         target_sources(${CMT_TARGET_NAME}
@@ -190,7 +190,7 @@ function(cmt_add_library target_name)
             FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_TARGET_NAME}_export.h)
     else()
         set_target_properties(${CMT_TARGET_NAME} PROPERTIES
-            CMT_VISABILITY_GENERATED False
+            CMT_VISIBILITY_GENERATED False
         )
     endif()
 
@@ -236,7 +236,7 @@ function(cmt_add_executable target_name)
     add_executable(${CMT_NAMESPACE}::${CMT_TARGET_EXPORT_NAME} ALIAS ${CMT_TARGET_NAME})
 
     set_target_properties(${CMT_TARGET_NAME} PROPERTIES
-        CMT_VISABILITY_GENERATED False
+        CMT_VISIBILITY_GENERATED False
     )
 
     cmt_target_setup(${CMT_TARGET_NAME}

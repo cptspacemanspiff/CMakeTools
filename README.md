@@ -13,7 +13,7 @@ So this has been built to solve my unhappy build system, please contribute if yo
 
 * Standardized conventions to support other people including the CMake project via installed dependency, as submodule (subfolder), or via fetch-content.
   * standardized target namespaces, variables and targetnames.
-* Automatic support for library best practices in terms of symbol visability.
+* Automatic support for library best practices in terms of symbol visbility.
 * Doxygen generation support.
 * Automatic packaging for RPM, Debian, Windows and MacOS.
   * Automatic dependency parsing.

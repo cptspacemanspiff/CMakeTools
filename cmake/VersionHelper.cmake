@@ -83,7 +83,7 @@ endfunction()
 
 function(cmt_generate_version_api target)
     cmake_parse_arguments("CMTFCN"
-        "SYMBOLS_VISABLE"
+        "SYMBOLS_VISIBLE"
         "NAMESPACE_NAME;FUNCTION_PREFIX;CXX_NAMESPACE"
         ""
         "${ARGN}")
@@ -121,16 +121,16 @@ function(cmt_generate_version_api target)
     set(TMP_OUTPUT_VERSION_H ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_NAMESPACE}${CMT_EXPORT_NAME}_version.h)
     set(TMP_OUTPUT_VERSION_CPP ${CMAKE_CURRENT_BINARY_DIR}/${CMT_NAMESPACE}${CMT_EXPORT_NAME}_version.cpp)
 
-    # get the visability settings from the function:
-    get_target_property(CMT_VISABILITY_GENERATED ${target} CMT_VISABILITY_GENERATED)
+    # get the visbility settings from the function:
+    get_target_property(CMT_VISIBILITY_GENERATED ${target} CMT_VISIBILITY_GENERATED)
 
-    if(CMT_VISABILITY_GENERATED)
-        get_target_property(CMT_VISABILITY_EXPORT_MACRO ${target} CMT_VISABILITY_EXPORT_MACRO)
-        get_target_property(CMT_VISABILITY_EXPORT_FILE ${target} CMT_VISABILITY_EXPORT_FILE)
-        set(VISABILITY_INCLUDE "#include \"${CMT_VISABILITY_EXPORT_FILE}\"")
+    if(CMT_VISIBILITY_GENERATED)
+        get_target_property(CMT_VISIBILITY_EXPORT_MACRO ${target} CMT_VISIBILITY_EXPORT_MACRO)
+        get_target_property(CMT_VISIBILITY_EXPORT_FILE ${target} CMT_VISIBILITY_EXPORT_FILE)
+        set(VISIBILITY_INCLUDE "#include \"${CMT_VISIBILITY_EXPORT_FILE}\"")
     else()
-        set(VISABILITY_INCLUDE "")
-        set(CMT_VISABILITY_EXPORT_MACRO "")
+        set(VISIBILITY_INCLUDE "")
+        set(CMT_VISIBILITY_EXPORT_MACRO "")
     endif()
 
     # if this is the first namespace of this name, create a header file:
