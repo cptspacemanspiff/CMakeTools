@@ -24,21 +24,21 @@ SOFTWARE.*/
 
 
 
-#ifndef @CMT_NAMESPACE@_VERSION_H
-#define @CMT_NAMESPACE@_VERSION_H
+#ifndef @CMT_NAMESPACE@@CMT_EXPORT_NAME@_VERSION_H
+#define @CMT_NAMESPACE@@CMT_EXPORT_NAME@_VERSION_H
 
 #include <string>
 
-namespace @CMT_NAMESPACE@
+namespace @CMT_CXX_NAMESPACE@
 {
 
-
-std::string get@CMT_NAMESPACE@Version();
-unsigned get@CMT_NAMESPACE@VersionMajor();
-unsigned get@CMT_NAMESPACE@VersionMinor();
-unsigned get@CMT_NAMESPACE@VersionPatch();
-unsigned get@CMT_NAMESPACE@VersionTweak();
-std::string get@CMT_NAMESPACE@GitHash();
+std::string get@CMT_EXPORT_NAME@Version();
+unsigned get@CMT_EXPORT_NAME@VersionMajor();
+unsigned get@CMT_EXPORT_NAME@VersionMinor();
+unsigned get@CMT_EXPORT_NAME@VersionPatch();
+unsigned get@CMT_EXPORT_NAME@VersionTweak();
+std::string get@CMT_EXPORT_NAME@GitHash();
+unsigned get@CMT_EXPORT_NAME@CommitsSinceVersionChange();
 
 }
 

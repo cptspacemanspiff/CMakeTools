@@ -22,13 +22,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 
-#include "@CMT_NAMESPACE@_version.h"
+#include "@CMT_NAMESPACE@@CMT_EXPORT_NAME@_version.h"
 
-namespace @CMT_NAMESPACE@ {
-std::string get@CMT_NAMESPACE@Version() { return "@@CMT_NAMESPACE@_VERSION@"; }
-unsigned get@CMT_NAMESPACE@Major() { return @@CMT_NAMESPACE@_VERSION_MAJOR@; }
-unsigned get@CMT_NAMESPACE@VersionMinor() { return @@CMT_NAMESPACE@_VERSION_MINOR@+0; }
-unsigned get@CMT_NAMESPACE@VersionPatch() { return @@CMT_NAMESPACE@_VERSION_PATCH@+0; }
-unsigned get@CMT_NAMESPACE@VersionTweak() { return @@CMT_NAMESPACE@_VERSION_TWEAK@+0; }
-std::string get@CMT_NAMESPACE@GitHash() { return  "@@CMT_NAMESPACE@_GIT_HASH@";}
+namespace @CMT_CXX_NAMESPACE@ {
+std::string get@CMT_EXPORT_NAME@Version() { return "@CMT_VERSION@"; }
+unsigned get@CMT_EXPORT_NAME@Major() { return @CMT_VERSION_MAJOR@; }
+unsigned get@CMT_EXPORT_NAME@VersionMinor() { return @CMT_VERSION_MINOR@+0; }
+unsigned get@CMT_EXPORT_NAME@VersionPatch() { return @CMT_VERSION_PATCH@+0; }
+unsigned get@CMT_EXPORT_NAME@VersionTweak() { return @CMT_VERSION_TWEAK@+0; }
+std::string get@CMT_EXPORT_NAME@GitHash() { return  "@CMT_GIT_HASH@";}
+unsigned getPluginCommitsSinceVersionChange(){ return @CMT_COMMITS_SINCE_VERSION_CHANGE@+0;}
 } // namespace CMT_CPP_NAMESPACE

@@ -4,8 +4,8 @@
 cmake_minimum_required(VERSION 3.24)
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/BuildTypes.cmake)
-
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/CoverageHelper.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/VersionHelper.cmake)
 
 macro(cmt_project_setup)
     message(DEBUG "Configuring project ${CMT_PROJECT_UNPARSED_ARGUMENTS}")
@@ -69,7 +69,7 @@ endmacro()
 
 function(cmt_target_setup target_name)
     cmake_parse_arguments("CMTFCN"
-        ""
+        "NO_SOVERSION"
         "NAMESPACE;EXPORT_NAME;NO_COVERAGE"
         ""
         "${ARGN}")
@@ -89,21 +89,12 @@ function(cmt_target_setup target_name)
         CMT_STANDARD_NAME "${CMTFCN_NAMESPACE}::${CMTFCN_EXPORT_NAME}"
     )
 
-    # if this is the first namespace of this name, create a header file:
-    configure_file(
-        ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/cmake/version.h.in
-        ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMTFCN_NAMESPACE}/${CMTFCN_NAMESPACE}_version.h
-        @ONLY)
+    cmt_target_set_version(${CMT_TARGET_NAME})
 
-    # have to do this in 2 stages because of the way cmake replaces @ONLY variables:
-    configure_file(
-        ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/cmake/version.cpp.in
-        ${PROJECT_BINARY_DIR}/tmp/${CMAKE_INSTALL_INCLUDEDIR}/${CMTFCN_NAMESPACE}/${CMTFCN_NAMESPACE}_version.cpp.in
-        @ONLY)
-    configure_file(
-        ${PROJECT_BINARY_DIR}/tmp/${CMAKE_INSTALL_INCLUDEDIR}/${CMTFCN_NAMESPACE}/${CMTFCN_NAMESPACE}_version.cpp.in
-        ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMTFCN_NAMESPACE}/${CMTFCN_NAMESPACE}_version.cpp
-        @ONLY)
+    if(NOT NO_SOVERSION)
+        set_target_properties(${target_name} PROPERTIES
+            SOVERSION ${PROJECT_VERSION_MAJOR})
+    endif()
 
     # enable verbose warnings on targets
     target_compile_options(${target_name} PRIVATE
@@ -143,9 +134,12 @@ function(cmt_add_library target_name)
 
     if(DEFINED CMTFCN_EXPORT_NAME)
         set(CMT_TARGET_EXPORT_NAME ${CMTFCN_EXPORT_NAME})
+
     else()
         set(CMT_TARGET_EXPORT_NAME ${target_name})
     endif()
+
+
 
     if(NOT "${CMT_NAMESPACE}" STREQUAL "${target_name}")
         set(CMT_DEDUPED_NAMESPACED_NAME "${CMT_NAMESPACE}${target_name}")
@@ -161,13 +155,11 @@ function(cmt_add_library target_name)
         message(DEBUG "Creating non-namespaced library: ${CMT_TARGET_NAME}")
     endif()
 
+    message(DEBUG "Using export name: ${CMT_TARGET_EXPORT_NAME}")
+    message(DEBUG "Using namespace: ${CMT_NAMESPACE}")
     message(DEBUG "Adding library '${CMT_TARGET_NAME}' with args ${CMTFCN_UNPARSED_ARGUMENTS}")
     add_library(${CMT_TARGET_NAME} ${CMTFCN_UNPARSED_ARGUMENTS})
     add_library(${CMT_NAMESPACE}::${CMT_TARGET_EXPORT_NAME} ALIAS ${CMT_TARGET_NAME})
-
-    set_target_properties(${CMT_TARGET_NAME} PROPERTIES
-        VERSION ${PROJECT_VERSION}
-        SOVERSION ${PROJECT_VERSION_MAJOR})
 
     # check if target is not a header only library:
     get_target_property(CMT_TARGET_TYPE ${CMT_TARGET_NAME} TYPE)
@@ -196,7 +188,7 @@ function(cmt_add_library target_name)
 
     cmt_target_setup(${CMT_TARGET_NAME}
         NAMESPACE ${CMT_NAMESPACE}
-        EXPORT_NAME ${CMT_TARGET_NAME})
+        EXPORT_NAME ${CMT_TARGET_EXPORT_NAME})
     set(CMT_LAST_TARGET ${CMT_TARGET_NAME} PARENT_SCOPE)
 endfunction()
 
@@ -228,13 +220,17 @@ function(cmt_add_executable target_name)
         message(DEBUG "Creating non-namespaced executable: ${CMT_TARGET_NAME}")
     endif()
 
+    message(DEBUG "Using export name: ${CMT_TARGET_EXPORT_NAME}")
+    message(DEBUG "Using namespace: ${CMT_NAMESPACE}")
+    message(DEBUG "Adding library '${CMT_TARGET_NAME}' with args ${CMTFCN_UNPARSED_ARGUMENTS}")
     message(DEBUG "Adding executable '${CMT_TARGET_NAME}' with args ${CMTFCN_UNPARSED_ARGUMENTS}")
     add_executable(${CMT_TARGET_NAME} ${CMTFCN_UNPARSED_ARGUMENTS})
     add_executable(${CMT_NAMESPACE}::${CMT_TARGET_EXPORT_NAME} ALIAS ${CMT_TARGET_NAME})
 
     cmt_target_setup(${CMT_TARGET_NAME}
+        NO_SOVERSION
         NAMESPACE ${CMT_NAMESPACE}
-        EXPORT_NAME ${CMT_TARGET_NAME})
+        EXPORT_NAME ${CMT_TARGET_EXPORT_NAME})
 
     set(CMT_LAST_TARGET ${CMT_TARGET_NAME} PARENT_SCOPE)
 endfunction()
