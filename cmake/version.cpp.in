@@ -22,11 +22,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 
-#include "@CMT_NAMESPACE@@CMT_EXPORT_NAME@_version.h"
+#include "@CMT_NAMESPACE@/@CMT_NAMESPACE@@CMT_EXPORT_NAME@_version.h"
 
 namespace @CMT_CXX_NAMESPACE@ {
 std::string get@CMT_EXPORT_NAME@Version() { return "@CMT_VERSION@"; }
-unsigned get@CMT_EXPORT_NAME@Major() { return @CMT_VERSION_MAJOR@; }
+unsigned get@CMT_EXPORT_NAME@VersionMajor() { return @CMT_VERSION_MAJOR@; }
 unsigned get@CMT_EXPORT_NAME@VersionMinor() { return @CMT_VERSION_MINOR@+0; }
 unsigned get@CMT_EXPORT_NAME@VersionPatch() { return @CMT_VERSION_PATCH@+0; }
 unsigned get@CMT_EXPORT_NAME@VersionTweak() { return @CMT_VERSION_TWEAK@+0; }

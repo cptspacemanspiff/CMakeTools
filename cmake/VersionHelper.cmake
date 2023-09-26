@@ -83,7 +83,7 @@ endfunction()
 
 function(cmt_generate_version_api target)
     cmake_parse_arguments("CMTFCN"
-        ""
+        "SYMBOLS_VISABLE"
         "NAMESPACE_NAME;FUNCTION_PREFIX;CXX_NAMESPACE"
         ""
         "${ARGN}")
@@ -107,7 +107,7 @@ function(cmt_generate_version_api target)
     else()
         set(CMT_CXX_NAMESPACE ${CMTFCN_CXX_NAMESPACE})
     endif()
-    
+
     # get version info from target:
     get_target_property(CMT_VERSION ${target} VERSION)
     get_target_property(CMT_VERSION_MAJOR ${target} CMT_VERSION_MAJOR)
@@ -117,20 +117,39 @@ function(cmt_generate_version_api target)
     get_target_property(CMT_GIT_HASH ${target} CMT_GIT_HASH)
     get_target_property(CMT_COMMITS_SINCE_VERSION_CHANGE ${target} CMT_COMMITS_SINCE_VERSION_CHANGE)
 
+    set(TMP_OUTPUT_VERSION_BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR})
+    set(TMP_OUTPUT_VERSION_H ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_NAMESPACE}${CMT_EXPORT_NAME}_version.h)
+    set(TMP_OUTPUT_VERSION_CPP ${CMAKE_CURRENT_BINARY_DIR}/${CMT_NAMESPACE}${CMT_EXPORT_NAME}_version.cpp)
+
+    # get the visability settings from the function:
+    get_target_property(CMT_VISABILITY_GENERATED ${target} CMT_VISABILITY_GENERATED)
+
+    if(CMT_VISABILITY_GENERATED)
+        get_target_property(CMT_VISABILITY_EXPORT_MACRO ${target} CMT_VISABILITY_EXPORT_MACRO)
+        get_target_property(CMT_VISABILITY_EXPORT_FILE ${target} CMT_VISABILITY_EXPORT_FILE)
+        set(VISABILITY_INCLUDE "#include \"${CMT_VISABILITY_EXPORT_FILE}\"")
+    else()
+        set(VISABILITY_INCLUDE "")
+        set(CMT_VISABILITY_EXPORT_MACRO "")
+    endif()
 
     # if this is the first namespace of this name, create a header file:
     configure_file(
         ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/version.h.in
-        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_NAMESPACE}${CMT_EXPORT_NAME}_version.h
+        ${TMP_OUTPUT_VERSION_H}
         @ONLY)
 
-    # have to do this in 2 stages because of the way cmake replaces @ONLY variables:
+    # pull in the dependency:
     configure_file(
         ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/version.cpp.in
-        ${CMAKE_CURRENT_BINARY_DIR}/tmp/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_NAMESPACE}${CMT_EXPORT_NAME}_version.cpp.in
+        ${TMP_OUTPUT_VERSION_CPP}
         @ONLY)
-    configure_file(
-        ${CMAKE_CURRENT_BINARY_DIR}/tmp/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_NAMESPACE}${CMT_EXPORT_NAME}_version.cpp.in
-        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_NAMESPACE}${CMT_EXPORT_NAME}_version.cpp
-        @ONLY)
+
+    cmt_target_headers(${target} PUBLIC
+        BASE_DIRS
+        ${TMP_OUTPUT_VERSION_BASE_DIRS}
+        FILES
+        ${TMP_OUTPUT_VERSION_H})
+
+    target_sources(${target} PRIVATE ${TMP_OUTPUT_VERSION_CPP})
 endfunction()

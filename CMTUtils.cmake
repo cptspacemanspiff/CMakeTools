@@ -139,8 +139,6 @@ function(cmt_add_library target_name)
         set(CMT_TARGET_EXPORT_NAME ${target_name})
     endif()
 
-
-
     if(NOT "${CMT_NAMESPACE}" STREQUAL "${target_name}")
         set(CMT_DEDUPED_NAMESPACED_NAME "${CMT_NAMESPACE}${target_name}")
     else()
@@ -178,12 +176,22 @@ function(cmt_add_library target_name)
             EXPORT_MACRO_NAME ${CMT_DEDUPED_NAMESPACED_NAME}_EXPORT
         )
 
+        set_target_properties(${CMT_TARGET_NAME} PROPERTIES
+            CMT_VISABILITY_GENERATED True
+            CMT_VISABILITY_EXPORT_MACRO "${CMT_DEDUPED_NAMESPACED_NAME}_EXPORT"
+            CMT_VISABILITY_EXPORT_FILE "${CMT_TARGET_NAME}_export.h"
+        )
+
         target_sources(${CMT_TARGET_NAME}
             PUBLIC
-            FILE_SET HEADERS
+            FILE_SET cmt_public_headers
             TYPE HEADERS
             BASE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}
             FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/${CMT_NAMESPACE}/${CMT_TARGET_NAME}_export.h)
+    else()
+        set_target_properties(${CMT_TARGET_NAME} PROPERTIES
+            CMT_VISABILITY_GENERATED False
+        )
     endif()
 
     cmt_target_setup(${CMT_TARGET_NAME}
@@ -226,6 +234,10 @@ function(cmt_add_executable target_name)
     message(DEBUG "Adding executable '${CMT_TARGET_NAME}' with args ${CMTFCN_UNPARSED_ARGUMENTS}")
     add_executable(${CMT_TARGET_NAME} ${CMTFCN_UNPARSED_ARGUMENTS})
     add_executable(${CMT_NAMESPACE}::${CMT_TARGET_EXPORT_NAME} ALIAS ${CMT_TARGET_NAME})
+
+    set_target_properties(${CMT_TARGET_NAME} PROPERTIES
+        CMT_VISABILITY_GENERATED False
+    )
 
     cmt_target_setup(${CMT_TARGET_NAME}
         NO_SOVERSION
@@ -302,6 +314,7 @@ function(cmt_install_target target_name)
     )
 endfunction()
 
+# Add headers to a target:
 function(cmt_target_headers target)
     cmake_parse_arguments("CMTFCN"
         "PUBLIC;INTERFACE;PRIVATE"
