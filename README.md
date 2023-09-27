@@ -1,4 +1,16 @@
 # CMakeTools
+
+
+> [!NOTE]
+> Highlights information that users should take into account, even when skimming.
+
+> [!IMPORTANT]
+> Crucial information necessary for users to succeed.
+
+> [!WARNING]
+> Critical content demanding immediate user attention due to potential risks.
+
+
 Writing a good, high quality, CMake project is hard. There is alot of boilerplate required even for the simple cases. Even if you know what you are doing it can be a pain, with a lot of copy pasting from other projects. It does not have to be that way. The objective of this library is to provide simplified abstractions, and opinionated standardizations for the 95% use case, with the overall goal of spending less time fighting your build system and more time building your code.
 
 ## Goal
