@@ -25,6 +25,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/utils.cmake)
 function(cmt_build_coverage_setup)
     option(CMT_COVERAGE_LCOV "Generate gcovr coverage reports" ON)
     option(CMT_COVERAGE_GCOVR "Generate lcov coverage reports" ON)
+    configure_file(${CMAKE_CURRENT_FUNCTION_LIST_DIR}/coverage_config_updated.in ${CMAKE_BINARY_DIR}/coverage/coverage_config_updated @ONLY)
 endfunction()
 
 function(cmt_coverage_setup_target target_name)
@@ -57,7 +58,7 @@ function(cmt_coverage_setup_target target_name)
                 PROPERTIES
                 CMT_COVERAGE_SOURCES ""
                 CMT_COVERAGE_FILESETS ""
-                CMT_COVERAGE_DEPS "")
+                CMT_COVERAGE_DEPS "${CMAKE_BINARY_DIR}/coverage/coverage_config_updated")
 
             # common commands:
             set(TEST_COMMAND "ctest" "-C" "$<CONFIG>" "--output-on-failure")
@@ -101,8 +102,8 @@ function(cmt_coverage_setup_target target_name)
                         COMMAND "$<$<CONFIG:Coverage>:${TEST_COMMAND}>"
                         COMMAND "$<$<CONFIG:Coverage>:${GCOVR_COMMAND}>"
                         DEPENDS "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_SOURCES>"
-                                "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_FILESETS>"
-                                "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_DEPS>"
+                        "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_FILESETS>"
+                        "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_DEPS>"
                         COMMAND_EXPAND_LISTS
                         VERBATIM)
                     target_sources(CMT_CoverageTarget PRIVATE ${GCROVR_OUTPUT_DIR}/coverage.xml)
@@ -133,6 +134,19 @@ function(cmt_coverage_setup_target target_name)
                         set(GCOVR_LLVM_ADDITIONAL_ARGS "")
                     endif()
 
+                    # clean the build directory:
+                    set(LCOV_COMMAND_CLEAN "${LCOV_PATH}"
+                        "${LCOV_LLVM_ADDITIONAL_ARGS}"
+                        "--directory" "${CMAKE_BINARY_DIR}"
+                        "--zerocounters")
+                    set(LCOV_COMMAND_INIT "${LCOV_PATH}"
+                        "${LCOV_LLVM_ADDITIONAL_ARGS}"
+                        "--capture"
+                        "--initial"
+                        "--directory" "${CMAKE_BINARY_DIR}"
+                        "--output-file" "${LCOV_OUTPUT_DIR}/coverage.info"
+                        "--include;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_SOURCES>,;--include;>"
+                        "--include;$<JOIN:$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_FILESETS>,;--include;>")
                     set(LCOV_COMMAND "${LCOV_PATH}"
                         "${LCOV_LLVM_ADDITIONAL_ARGS}"
                         "--capture"
@@ -149,9 +163,14 @@ function(cmt_coverage_setup_target target_name)
                         POST_BUILD
                         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
                         COMMAND echo "$<IF:$<CONFIG:Coverage>,'${COVERAGE_TRUE_MSG}',${COVERAGE_FALSE_MSG}>"
+                        COMMAND "$<$<CONFIG:Coverage>:${LCOV_COMMAND_CLEAN}>"
+                        COMMAND "$<$<CONFIG:Coverage>:${LCOV_COMMAND_INIT}>"
                         COMMAND "$<$<CONFIG:Coverage>:${TEST_COMMAND}>"
                         COMMAND "$<$<CONFIG:Coverage>:${LCOV_COMMAND}>"
                         COMMAND "$<$<CONFIG:Coverage>:${LCOV_GENHTML_COMMAND}>"
+                        DEPENDS "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_SOURCES>"
+                        "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_FILESETS>"
+                        "$<TARGET_PROPERTY:CMT_CoverageTarget,CMT_COVERAGE_DEPS>"
                         COMMAND_EXPAND_LISTS
                         VERBATIM)
 
