@@ -3,6 +3,8 @@
 # so that we can track down the exact version of the code that was used to
 # generate the data.
 
+include("${CMAKE_CURRENT_LIST_DIR}/InternalHelpers.cmake")
+
 function(cmt_target_set_version target)
     find_package(Git)
 
@@ -79,6 +81,18 @@ function(cmt_target_set_version target)
         CMT_GIT_HASH ${TMP_GIT_HASH}
         CMT_COMMITS_SINCE_VERSION_CHANGE ${TMP_COMMITS_SINCE_VERSION_CHANGE}
     )
+endfunction()
+
+function(cmt_external_version_file)
+    set(CMT_VERSION_FILE "projectVersionDetails.cmake")
+    _cmt_directory_exists(${CMT_VERSION_FILE})
+    include("${CMAKE_CURRENT_LIST_DIR}/${CMT_VERSION_FILE}")
+
+    # message(FATAL_ERROR "Failed to get hash of last change: ${result}")
+
+    set(CMT_ExternalVersion_VER
+    ${CMT_ExternalVersion_VER}
+    PARENT_SCOPE)
 endfunction()
 
 function(cmt_generate_version_api target)
