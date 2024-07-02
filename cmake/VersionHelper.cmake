@@ -66,6 +66,10 @@ function(cmt_target_set_version target)
     message(DEBUG "${PROJECT_NAME} GIT_HASH: ${TMP_GIT_HASH}")
     message(DEBUG "${PROJECT_NAME} COMMITS_SINCE_VERSION_CHANGE: ${TMP_COMMITS_SINCE_VERSION_CHANGE}")
 
+    if(${TMP_COMMITS_SINCE_VERSION_CHANGE} GREATER 0)
+        message(WARNING "${PROJECT_NAME} has had ${TMP_COMMITS_SINCE_VERSION_CHANGE} commits since last version change.")
+    endif()
+
     # If the tweak version is not set, set it to 0:
     if(NOT TMP_VERSION_TWEAK)
         set(TMP_VERSION_TWEAK "0")
@@ -89,10 +93,9 @@ function(cmt_external_version_file)
     include("${CMAKE_CURRENT_LIST_DIR}/${CMT_VERSION_FILE}")
 
     # message(FATAL_ERROR "Failed to get hash of last change: ${result}")
-
     set(CMT_ExternalVersion_VER
-    ${CMT_ExternalVersion_VER}
-    PARENT_SCOPE)
+        ${CMT_ExternalVersion_VER}
+        PARENT_SCOPE)
 endfunction()
 
 function(cmt_generate_version_api target)

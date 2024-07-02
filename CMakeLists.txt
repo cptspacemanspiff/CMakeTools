@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 include(CMTUtils.cmake)
-cmt_external_version_file()
 #Move version to external file:
+cmt_external_version_file()
 Project(CMakeTools VERSION ${CMT_ExternalVersion_VER})
 
 

@@ -22,6 +22,10 @@ So this has been built to solve my own unhappy build systems, please contribute 
   - [ ] Installed RPATH/RUNPATH Defaults.
   - [x] Standardized Install/Export of CMake targets.
   - [x] Best Practice Defaults.
+- [ ] External versioning help
+  - [x] Support projectVersionDetails.cmake as external version script.
+  - [x] Commits since last version update.
+  - [ ] Check whether we are on main/master and yell warnings if out of date.
 - [x] Multi-target generator support
   - [x] Ninja Multi-Config
   - [x] MSVC
