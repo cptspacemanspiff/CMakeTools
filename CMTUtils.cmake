@@ -177,6 +177,8 @@ function(cmt_target_setup target_name)
     message(FATAL_ERROR "cmt_target_setup requires an export name")
   endif()
 
+  message(DEBUG "Creating target ${target_name} with SO versioning")
+
   set_target_properties(
     ${target_name}
     PROPERTIES CMT_EXPORT_NAME ${CMTFCN_EXPORT_NAME}
@@ -186,11 +188,12 @@ function(cmt_target_setup target_name)
   cmt_target_set_version(${target_name})
 
   if(NOT ${CMTFCN_NO_SOVERSION})
-    message(DEBUG "Creating target ${target_name} with SO versioning")
-    set_target_properties(${target_name} PROPERTIES SOVERSION
-                          ${PROJECT_VERSION_MAJOR})
+    message(DEBUG "Setting up target ${target_name} with SO versioning: Enabled")
+    set_target_properties(${target_name} PROPERTIES 
+                          VERSION ${PROJECT_VERSION}
+                          SOVERSION ${PROJECT_VERSION_MAJOR})
     else()
-      message(DEBUG "Creating target ${target_name} with SO versioning")
+      message(DEBUG "Setting up target ${target_name} with SO versioning: Disabled")
   endif()
 
   # enable verbose warnings on targets
@@ -206,7 +209,7 @@ function(cmt_target_setup target_name)
 
   if(NOT ${CMTFCN_NO_COVERAGE})
     # only add the coverage options on Coverage build type:
-    message(DEBUG "Creating target ${target_name} with coverage enabled")
+    message(DEBUG "Setting up target ${target_name} with coverage Enabled")
     target_compile_options(
       ${target_name}
       PRIVATE $<$<CONFIG:Coverage>: $<$<CXX_COMPILER_ID:GNU>:--coverage>
@@ -222,7 +225,7 @@ function(cmt_target_setup target_name)
       $<$<CXX_COMPILER_ID:MSVC>:/PROFILE>
       >)
   else()
-    message(DEBUG "Creating target ${target_name} with coverage disabled")
+    message(DEBUG "Setting up target ${target_name} with coverage Disabled")
   endif()
 endfunction()
 

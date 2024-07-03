@@ -77,7 +77,8 @@ function(cmt_target_set_version target)
 
     # Add these version info to the target:
     set_target_properties(${target} PROPERTIES
-        VERSION ${TMP_VERSION}
+        # VERSION cannot be set here because it makes exes have wierd behavior(always symlinked)
+        CMT_VERSION ${TMP_VERSION}
         CMT_VERSION_MAJOR ${TMP_VERSION_MAJOR}
         CMT_VERSION_MINOR ${TMP_VERSION_MINOR}
         CMT_VERSION_PATCH ${TMP_VERSION_PATCH}
