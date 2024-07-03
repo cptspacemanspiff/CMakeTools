@@ -36,6 +36,8 @@ So this has been built to solve my own unhappy build systems, please contribute 
     - [ ] Windows
     - [ ] MacOS
   - [ ] Automatic dependency parsing and versioning.
+- [ ] External Build Helpers/ Integration with fetchContent
+  - [ ] Build external projects from source at configure time.
 - [ ] Integrated testing helpers.
   - [ ] Static Analysis
     - [ ] Clang-Tidy
