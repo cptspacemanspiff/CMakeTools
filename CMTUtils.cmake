@@ -58,6 +58,10 @@ macro(cmt_project_setup)
   set(CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME})
 
   if("${PROJECT_NAME}" STREQUAL "${CMAKE_PROJECT_NAME}")
+    # cross compilation only looks for libraries from within the toolchain directory.
+    # Also look in the install prefix:
+    list(APPEND CMAKE_FIND_ROOT_PATH ${CMAKE_INSTALL_PREFIX})
+
     set(CMAKE_COLOR_DIAGNOSTICS
       ON
       CACHE BOOL "Use color in compiler diagnostics")
@@ -76,6 +80,9 @@ macro(cmt_project_setup)
     endif()
 
     option(BUILD_EXAMPLES "Build examples" ON)
+
+
+
   endif()
 endmacro()
 
