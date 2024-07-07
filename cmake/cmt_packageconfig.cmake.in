@@ -1,0 +1,14 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+foreach(dep "@CMT_PKGCFG_Dependecies@")
+    find_dependency(${dep} REQUIRED)
+endforeach()
+
+if (NOT DEFINED @CMT_PKGCFG_ProjectName@)
+    FILE(GLOB CMT_PKGCFG_PROJECT_Targets *Target.cmake)
+    foreach(target ${CMT_PKGCFG_PROJECT_Targets})
+        include(${target})
+    endforeach()
+endif()

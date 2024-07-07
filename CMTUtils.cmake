@@ -12,6 +12,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/cmake/ExternalBuild.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/BuildTypes.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/CoverageHelper.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/VersionHelper.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/DoxygenHelper.cmake)
 
 #
 # Configure a project with CMAKE tools.
@@ -318,6 +319,9 @@ function(cmt_add_library target_name)
         VISIBILITY_INLINES_HIDDEN 1)
     endif()
 
+    # do we really want a export file per library? or would a shared export 
+    # file for the project be better? maybe a single export file per shared 
+    # export set?
     generate_export_header(
       ${CMT_TARGET_NAME}
       EXPORT_FILE_NAME
@@ -436,6 +440,103 @@ function(cmt_add_executable target_name)
     PARENT_SCOPE)
 endfunction()
 
+# Add headers to a target, similar in usage to the other Target_<commands>
+# 
+# Often you want to be able to access targets header files from dependent 
+# projects (either within a single project or after install). This is often done 
+# via Target_include_directories, but this does not really associate individual 
+# files with a target, not rerunning build when headers change, and not 
+# providing installation direction.
+# 
+# In cmake 3.24 and up there is a different option: FILE_SETS, and allow the 
+# addition of non source files to a target. However these are very open ended, 
+# CMakeTools wraps this command to associate public/private/interface headers
+# To a library, which will automatically exported and installed to 
+# ${prefix}/${CMAKE_INSTALL_INCLUDEDIR} (for Public/Interface)
+#
+# Input args:
+#   Positional:
+#     (Required) : target name
+#     (Required) : Scope -> PRIVATE PUBLIC or INTERFACE
+#   Multi Value:
+#     (Required) BASE_DIRS : How much of the directory tree to install. If you 
+#                            have a file located at: Root/A/B/C/file.h and your 
+#                            BASEDIR is Root/A/B then your file (on std linux)
+#                            will be installed to include/C/file.h
+#                            (See filesets for more info)
+#     (Required) FILES : list of header files to add.
+function(cmt_target_headers target)
+  cmake_parse_arguments("CMTFCN" "PUBLIC;INTERFACE;PRIVATE" ""
+    "BASE_DIRS;FILES" "${ARGN}")
+
+  # only one of PUBLIC, INTERFACE, or PRIVATE can be set:
+  if((CMTFCN_PUBLIC AND CMTFCN_INTERFACE)
+    OR(CMTFCN_PUBLIC AND CMTFCN_PRIVATE)
+    OR(CMTFCN_INTERFACE AND CMTFCN_PRIVATE))
+    message(FATAL_ERROR "Only one of PUBLIC, INTERFACE, or PRIVATE can be set")
+  endif()
+
+  if(NOT CMTFCN_PUBLIC
+    AND NOT CMTFCN_INTERFACE
+    AND NOT CMTFCN_PRIVATE)
+    message(FATAL_ERROR "One of PUBLIC, INTERFACE, or PRIVATE must be set")
+  else()
+    if(CMTFCN_PUBLIC)
+      set(CMT_TARGET_HEADERS_SCOPE PUBLIC)
+      set(CMT_TARGET_HEADERS_NAME cmt_public_headers)
+    elseif(CMTFCN_INTERFACE)
+      set(CMT_TARGET_HEADERS_SCOPE INTERFACE)
+      set(CMT_TARGET_HEADERS_NAME cmt_interface_headers)
+    elseif(CMTFCN_PRIVATE)
+      set(CMT_TARGET_HEADERS_SCOPE PRIVATE)
+      set(CMT_TARGET_HEADERS_NAME cmt_private_headers)
+    endif()
+  endif()
+
+  if(NOT CMTFCN_BASE_DIRS)
+    # default basedir is the current dir:
+    set(CMTFCN_BASE_DIRS "${CMAKE_CURRENT_LIST_DIR}")
+    message(
+      FATAL_ERROR
+      "CMT_TARGET_HEADERS BASE_DIRS Required - No base dirs specified."
+    )
+  endif()
+
+  if(NOT CMTFCN_FILES)
+    message(FATAL_ERROR "No files specified for cmt_target_headers")
+  endif()
+
+  message(DEBUG "cmt_target_headers associating headers with target: ${target} using scope ${CMT_TARGET_HEADERS_SCOPE}")
+  message(DEBUG "cmt_target_headers ${target} using base dirs: \n     ${CMTFCN_BASE_DIRS}")
+  message(DEBUG "cmt_target_headers ${target} using files: \n     ${CMTFCN_FILES}")
+
+  target_sources(
+    ${target}
+    ${CMT_TARGET_HEADERS_SCOPE}
+    FILE_SET
+    ${CMT_TARGET_HEADERS_NAME}
+    TYPE
+    HEADERS
+    BASE_DIRS
+    ${CMTFCN_BASE_DIRS}
+    FILES
+    ${CMTFCN_FILES})
+endfunction()
+
+# CMakeTools version of install target, this parses previous information 
+# associated with the target from cmt_add_<library;ececutable> and 
+# cmt_target_headers.
+# 
+# The target is installed wholely into a single ExportSet (goes into the same target files)
+# 
+# Input args:
+#   Positional:
+#     (Required) : targetname
+#   Multi-Value:
+#     (Optional) : SUBTARGETS - Other targets you want to get installed in the 
+#                   same export set and component name. See notes above for info
+#                   about what this is.
+# 
 function(cmt_install_target target_name)
   cmake_parse_arguments("CMTFCN" "" "" "SUBTARGETS" "${ARGN}")
 
@@ -505,59 +606,50 @@ function(cmt_install_target target_name)
     COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development)
 endfunction()
 
-# Add headers to a target:
-function(cmt_target_headers target)
-  cmake_parse_arguments("CMTFCN" "PUBLIC;INTERFACE;PRIVATE" ""
-    "BASE_DIRS;FILES" "${ARGN}")
+# generates a basic <ProjectName>Config.cmake file, it should only be called 
+# once per project, probably in src directory.
+# 
+# It makes a bunch of assumptions about the structure of the project.
+# 
+# * There is a primary target in the project, there may be additional 
+#   optionalally installed targets, but they all require the primary target.
+#   This is because the cmake config package file is on a project basis, but 
+#   needs to be installed with a target. this probably needs to be more explicit 
+#   in the dependency graph.
+# * All dependencies are required. (ToDo?)
+# * No FindPackage component support. (ToDo?), grabs everything availiable.
+# 
+# Input args:
+#   Positional:
+#     (Required) : targetname, this is the target that this pkg config gets 
+#                  installed with (as part of the development component. This 
+#                  means that 
+#     
+#   Multi-Value:
+#     (Optional) : REQUIRED_DEPS - Any required deps that users of this project. 
+function(cmt_generate_cmake_config target_name)
+  cmake_parse_arguments("CMTFCN" "" "" "REQUIRED_DEPS" "${ARGN}")
 
-  # only one of PUBLIC, INTERFACE, or PRIVATE can be set:
-  if((CMTFCN_PUBLIC AND CMTFCN_INTERFACE)
-    OR(CMTFCN_PUBLIC AND CMTFCN_PRIVATE)
-    OR(CMTFCN_INTERFACE AND CMTFCN_PRIVATE))
-    message(FATAL_ERROR "Only one of PUBLIC, INTERFACE, or PRIVATE can be set")
-  endif()
+  include(CMakePackageConfigHelpers)
 
-  if(NOT CMTFCN_PUBLIC
-    AND NOT CMTFCN_INTERFACE
-    AND NOT CMTFCN_PRIVATE)
-    message(FATAL_ERROR "One of PUBLIC, INTERFACE, or PRIVATE must be set")
-  else()
-    if(CMTFCN_PUBLIC)
-      set(CMT_TARGET_HEADERS_SCOPE PUBLIC)
-      set(CMT_TARGET_HEADERS_NAME cmt_public_headers)
-    elseif(CMTFCN_INTERFACE)
-      set(CMT_TARGET_HEADERS_SCOPE INTERFACE)
-      set(CMT_TARGET_HEADERS_NAME cmt_interface_headers)
-    elseif(CMTFCN_PRIVATE)
-      set(CMT_TARGET_HEADERS_SCOPE PRIVATE)
-      set(CMT_TARGET_HEADERS_NAME cmt_private_headers)
-    endif()
-  endif()
+  set(CMT_PKGCFG_ProjectName ${PROJECT_NAME})
+  set(CMT_PKGCFG_Dependecies ${CMTFCN_REQUIRED_DEPS})
 
-  if(NOT CMTFCN_BASE_DIRS)
-    # default basedir is the current dir:
-    set(CMTFCN_BASE_DIRS "${CMAKE_CURRENT_LIST_DIR}")
-    message(
-      DEBUG
-      "CMT_TARGET_HEADERS - No base dirs specified, using current dir: ${CMAKE_CURRENT_LIST_DIR}"
-    )
-  endif()
+  set(cmakeModulesDir cmake)
 
-  if(NOT CMTFCN_FILES)
-    message(FATAL_ERROR "No files specified for cmt_target_headers")
-  endif()
+  message(DEBUG "Configuring cmake package config for ${target_name}")
+  message(DEBUG "src cmt_packageconfig ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/cmt_packageconfig.cmake.in")
+  configure_package_config_file(
+    ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/cmake/cmt_packageconfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+    PATH_VARS cmakeModulesDir
+    # NO_SET_AND_CHECK_MACRO
+    # NO_CHECK_REQUIRED_COMPONENTS_MACRO
+ )
 
-  target_sources(
-    ${target}
-    ${CMT_TARGET_HEADERS_SCOPE}
-    FILE_SET
-    ${CMT_TARGET_HEADERS_NAME}
-    TYPE
-    HEADERS
-    BASE_DIRS
-    ${CMTFCN_BASE_DIRS}
-    FILES
-    ${CMTFCN_FILES})
+ write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+ VERSION ${PROJECT_VERSION}
+ COMPATIBILITY AnyNewerVersion)
+
+
 endfunction()
-
-include(${CMAKE_CURRENT_LIST_DIR}/cmake/DoxygenHelper.cmake)
