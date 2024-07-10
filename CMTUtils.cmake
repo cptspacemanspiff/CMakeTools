@@ -568,13 +568,14 @@ function(cmt_install_target target_name)
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
 
+    # header includes:
     FILE_SET cmt_public_headers
     COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 
     FILE_SET cmt_interface_headers
     COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 
   if(CMTFCN_SUBTARGETS)
     foreach(subtarget ${CMTFCN_SUBTARGETS})
@@ -621,35 +622,74 @@ endfunction()
 # 
 # Input args:
 #   Positional:
-#     (Required) : targetname, this is the target that this pkg config gets 
+#     (Required) : primary_target, this is the target that this pkg config gets 
 #                  installed with (as part of the development component. This 
-#                  means that 
+#                  means that this target is a requirement for any development)
 #     
 #   Multi-Value:
 #     (Optional) : REQUIRED_DEPS - Any required deps that users of this project. 
-function(cmt_generate_cmake_config target_name)
-  cmake_parse_arguments("CMTFCN" "" "" "REQUIRED_DEPS" "${ARGN}")
+function(cmt_install_cmake_config primary_target)
+  cmake_parse_arguments("CMTFCN" "" "" "REQUIRED_DEPS;TARGETS" "${ARGN}")
 
   include(CMakePackageConfigHelpers)
 
   set(CMT_PKGCFG_ProjectName ${PROJECT_NAME})
   set(CMT_PKGCFG_Dependecies ${CMTFCN_REQUIRED_DEPS})
 
-  set(cmakeModulesDir cmake)
+  get_target_property(CMT_TARGET_EXPORT_NAME ${primary_target} CMT_EXPORT_NAME)
+  get_target_property(CMT_TARGET_NAMESPACE ${primary_target} CMT_NAMESPACE)
+  get_target_property(CMT_TARGET_STANDARD_NAME ${primary_target} CMT_STANDARD_NAME)
+
+  if(NOT (CMT_TARGET_NAMESPACE STREQUAL PROJECT_NAME))
+    message(FATAL_ERROR "Tried to install config file for primary target ${target} which is not a member of project ${PROJECT_NAME}")
+  endif()
+
+  set(CMT_PKGCFG_Targets "")
+  list(APPEND CMT_PKGCFG_Targets "${CMT_TARGET_EXPORT_NAME}")
+
+  # get the standard name/namespace for each non-primary target:
+  foreach(target ${CMTFCN_TARGETS})
+    get_target_property(TMP_TARGET_NAMESPACE ${target} CMT_NAMESPACE)
+    get_target_property(TMP_TARGET_EXPORT_NAME ${target} CMT_EXPORT_NAME)
+    if(NOT (TMP_TARGET_NAMESPACE STREQUAL PROJECT_NAME))
+      message(FATAL_ERROR "Tried to install config file for target ${target} which is not a member of project ${PROJECT_NAME}")
+    endif()
+    list(APPEND CMT_PKGCFG_Targets "${TMP_TARGET_EXPORT_NAME}")
+  endforeach()
+
+
+
+  message(
+    DEBUG
+    "Installing target config: ${target_name}\n"
+    "      Export name: ${CMT_TARGET_EXPORT_NAME}\n"
+    "      Namespace: ${CMT_TARGET_NAMESPACE}\n"
+    "      Standard name: ${CMT_TARGET_STANDARD_NAME}")
 
   message(DEBUG "Configuring cmake package config for ${target_name}")
   message(DEBUG "src cmt_packageconfig ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/cmt_packageconfig.cmake.in")
   configure_package_config_file(
-    ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/cmake/cmt_packageconfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/cmake/cmt_packageconfig.cmake.in 
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-    PATH_VARS cmakeModulesDir
     # NO_SET_AND_CHECK_MACRO
     # NO_CHECK_REQUIRED_COMPONENTS_MACRO
  )
 
- write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+ write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
  VERSION ${PROJECT_VERSION}
- COMPATIBILITY AnyNewerVersion)
+ COMPATIBILITY SameMajorVersion)
 
+
+
+
+ install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  # EXPORT ${CMT_TARGET_NAMESPACE}${CMT_TARGET_EXPORT_NAME}Targets
+  # NAMESPACE ${CMT_TARGET_NAMESPACE}::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+  COMPONENT ${CMT_TARGET_STANDARD_NAME}_Development)
 
 endfunction()

@@ -1,14 +1,19 @@
 @PACKAGE_INIT@
-
 include(CMakeFindDependencyMacro)
 
+message(DEBUG "FindPackageConfig: @CMT_PKGCFG_ProjectName@")
+
 foreach(dep "@CMT_PKGCFG_Dependecies@")
-    find_dependency(${dep} REQUIRED)
+    if(NOT dep STREQUAL "")
+        message(DEBUG "FindPackageConfig: @CMT_PKGCFG_ProjectName@ finding required dependency ${dep}")
+        
+        find_dependency(${dep} REQUIRED)
+    endif()
 endforeach()
 
-if (NOT DEFINED @CMT_PKGCFG_ProjectName@)
-    FILE(GLOB CMT_PKGCFG_PROJECT_Targets *Target.cmake)
-    foreach(target ${CMT_PKGCFG_PROJECT_Targets})
-        include(${target})
-    endforeach()
-endif()
+foreach(target "@CMT_PKGCFG_Targets@")
+    if(NOT DEFINED "@CMT_PKGCFG_ProjectName@::${target}")
+        message(DEBUG "FindPackageConfig: @CMT_PKGCFG_ProjectName@ Adding target @CMT_PKGCFG_ProjectName@::${target}")
+        include("${CMAKE_CURRENT_LIST_DIR}/@CMT_PKGCFG_ProjectName@${target}Targets.cmake")
+    endif()
+endforeach()
