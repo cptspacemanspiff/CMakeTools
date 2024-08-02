@@ -53,3 +53,26 @@ function(cmt_get_target_sources_realpath varname)
         set(${varname} "${TMP_REALPATHS}" PARENT_SCOPE)
     endif()
 endfunction()
+
+# push variable onto stack, where stackname is based on varname
+# 
+# 
+function(cmt_stack_push varname)
+    list(APPEND CMT_STACK_${varname} ${${varname}})
+    message(DEBUG "cmt_stack_push pushed ${varname} = ${${varname}}")
+    message(DEBUG "cmt_stack_push CMT_STACK_${varname} = ${CMT_STACK_${varname}}")
+endfunction()
+
+function(cmt_stack_push_set varname)
+    cmake_parse_arguments(CMTFCN "" "" "" ${ARGN})
+    cmt_stack_push(${varname})
+    message(DEBUG "cmt_stack_push_set set ${varname} = ${CMTFCN_UNPARSED_ARGUMENTS}")
+    set(${varname} ${CMTFCN_UNPARSED_ARGUMENTS} PARENT_SCOPE)
+endfunction()
+
+function(cmt_stack_pop varname)
+    list(POP_BACK CMT_STACK_${varname} ${varname})
+    message(DEBUG "cmt_stack_pop popped ${varname} = ${${varname}}")
+    message(DEBUG "cmt_stack_pop CMT_STACK_${varname} = ${CMT_STACK_${varname}}")
+    set(${varname} ${${varname}} PARENT_SCOPE)
+endfunction()
