@@ -193,7 +193,7 @@ function(cmt_target_setup target_name)
     ${target_name}
     PROPERTIES CMT_EXPORT_NAME ${CMTFCN_EXPORT_NAME}
     CMT_NAMESPACE ${CMTFCN_NAMESPACE}
-    CMT_STANDARD_NAME "${CMTFCN_NAMESPACE}::${CMTFCN_EXPORT_NAME}")
+    CMT_STANDARD_NAME "${CMTFCN_NAMESPACE}_${CMTFCN_EXPORT_NAME}")
 
   cmt_target_set_version(${target_name})
 
@@ -309,7 +309,7 @@ function(cmt_add_library target_name)
     "Adding library '${CMT_TARGET_NAME}' with args ${CMTFCN_UNPARSED_ARGUMENTS}"
   )
   add_library(${CMT_TARGET_NAME} ${CMTFCN_UNPARSED_ARGUMENTS})
-  add_library(${CMT_NAMESPACE}_${CMT_TARGET_EXPORT_NAME} ALIAS
+  add_library(${CMT_NAMESPACE}::${CMT_TARGET_EXPORT_NAME} ALIAS
     ${CMT_TARGET_NAME})
 
   # check if target is not a header only library:

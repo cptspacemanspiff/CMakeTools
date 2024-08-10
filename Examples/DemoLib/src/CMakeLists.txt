@@ -9,7 +9,7 @@ cmt_install_target(Hello)
 
 # exe target:
 cmt_add_executable(EXE hello.cpp NAMESPACED NO_COVERAGE)
-target_link_libraries(${CMT_LAST_TARGET} PRIVATE Hello)
+target_link_libraries(${CMT_LAST_TARGET} PRIVATE DemoLib::Hello)
 cmt_install_target(${CMT_LAST_TARGET})
 
 cmt_install_cmake_config(Hello)

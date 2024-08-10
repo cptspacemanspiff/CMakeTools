@@ -20,4 +20,4 @@ FetchContent_Declare(
     OVERRIDE_FIND_PACKAGE 
 )
 
-FetchContent_MakeAvailable(Demolib Foo)
+FetchContent_MakeAvailable(Demolib foo)
