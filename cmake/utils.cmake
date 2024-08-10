@@ -1,5 +1,8 @@
 include_guard()
 
+# # configures private headers to only be used internally (mainly by test files that need access to resources) the include paths are relative to this location.
+# function(cmt_target_configure_headers target)
+# endfunction()
 function(cmt_append_target_property target)
     # parse args:
     cmake_parse_arguments(CMTFCN "" "PROPERTY" "" ${ARGN})
@@ -54,13 +57,20 @@ function(cmt_get_target_sources_realpath varname)
     endif()
 endfunction()
 
-# push variable onto stack, where stackname is based on varname
-# 
-# 
+# push variable onto a local variable stack, where stackname is based on varname,
+# probably gets screwed up by lists.
+#
 function(cmt_stack_push varname)
+    list(LENGTH ${varname} length)
+
+    if(${length} GREATER 1)
+        message(FATAL_ERROR "cmt_stack_push does not support pushing lists. You tried to push: \"${${varname}}\"")
+    endif()
+
     list(APPEND CMT_STACK_${varname} ${${varname}})
     message(DEBUG "cmt_stack_push pushed ${varname} = ${${varname}}")
     message(DEBUG "cmt_stack_push CMT_STACK_${varname} = ${CMT_STACK_${varname}}")
+    set(CMT_STACK_${varname} ${CMT_STACK_${varname}} PARENT_SCOPE)
 endfunction()
 
 function(cmt_stack_push_set varname)
@@ -68,6 +78,7 @@ function(cmt_stack_push_set varname)
     cmt_stack_push(${varname})
     message(DEBUG "cmt_stack_push_set set ${varname} = ${CMTFCN_UNPARSED_ARGUMENTS}")
     set(${varname} ${CMTFCN_UNPARSED_ARGUMENTS} PARENT_SCOPE)
+    set(CMT_STACK_${varname} ${CMT_STACK_${varname}} PARENT_SCOPE)
 endfunction()
 
 function(cmt_stack_pop varname)
@@ -75,4 +86,34 @@ function(cmt_stack_pop varname)
     message(DEBUG "cmt_stack_pop popped ${varname} = ${${varname}}")
     message(DEBUG "cmt_stack_pop CMT_STACK_${varname} = ${CMT_STACK_${varname}}")
     set(${varname} ${${varname}} PARENT_SCOPE)
+    set(CMT_STACK_${varname} ${CMT_STACK_${varname}} PARENT_SCOPE)
+endfunction()
+
+# Function that acts like a map, (by making a ton of variables...)
+function(cmt_map_set mapname)
+    cmake_parse_arguments(CMTFCN "GLOBAL" "KEY;VALUE" "" ${ARGN})
+
+    message(STATUS "cmt_map_set: Map: ${mapname}, Key: ${CMTFCN_KEY}, value: ${CMTFCN_VALUE}")
+
+    if((NOT DEFINED CMTFCN_KEY) OR (NOT DEFINED CMTFCN_VALUE))
+        message(FATAL_ERROR "cmt_map_set(mapname KEY key VALUE value) requires both key and value positional args.")
+    endif()
+
+    if(CMTFCN_GLOBAL)
+        set(MapVarName "CMT_GLOBALVALUES_MAP_${mapname}_${CMTFCN_KEY}")
+    else()
+        set(MapVarName "CMT_LOCAL_MAP_${mapname}_${CMTFCN_KEY}")
+    endif()
+
+    message(STATUS "cmt_map_set: MapVarName: ${MapVarName} = \'${${MapVarName}}\'")
+    message(STATUS "cmt_map_set: Current: \'${${MapVarName}}\' new: \'${CMTFCN_VALUE}\'")
+    if(DEFINED ${MapVarName} AND NOT ("${${MapVarName}}" STREQUAL "${CMTFCN_VALUE}"))
+        message(FATAL_ERROR "trying to modify map value, this is not supported")
+    endif()
+
+    if(CMTFCN_GLOBAL)
+        set(${MapVarName} "${CMTFCN_VALUE}" CACHE INTERNAL "global map value for cmt ${mapname} map.")
+    else()
+        set(${MapVarName} "${CMTFCN_VALUE}" PARENT_SCOPE)
+    endif()
 endfunction()

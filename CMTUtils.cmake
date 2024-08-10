@@ -13,7 +13,8 @@ include(${CMAKE_CURRENT_LIST_DIR}/cmake/BuildTypes.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/CoverageHelper.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/VersionHelper.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/DoxygenHelper.cmake)
-
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/ResourceDownloader.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/PackagingHelper.cmake)
 #
 # Configure a project with CMAKE tools.
 #
@@ -196,6 +197,10 @@ function(cmt_target_setup target_name)
 
   cmt_target_set_version(${target_name})
 
+  if(NOT PROJECT_VERSION)
+    message(FATAL_ERROR "Project ${PROJECT_NAME} has no version. CMakeTools Requires all projects to have a version specified.")
+  endif()
+
   if(NOT ${CMTFCN_NO_SOVERSION})
     message(DEBUG "Setting up target ${target_name} with SO versioning: Enabled")
     set_target_properties(${target_name} PROPERTIES 
@@ -304,7 +309,7 @@ function(cmt_add_library target_name)
     "Adding library '${CMT_TARGET_NAME}' with args ${CMTFCN_UNPARSED_ARGUMENTS}"
   )
   add_library(${CMT_TARGET_NAME} ${CMTFCN_UNPARSED_ARGUMENTS})
-  add_library(${CMT_NAMESPACE}::${CMT_TARGET_EXPORT_NAME} ALIAS
+  add_library(${CMT_NAMESPACE}_${CMT_TARGET_EXPORT_NAME} ALIAS
     ${CMT_TARGET_NAME})
 
   # check if target is not a header only library:
@@ -529,6 +534,10 @@ endfunction()
 # 
 # The target is installed wholely into a single ExportSet (goes into the same target files)
 # 
+# Note that the install COMPONENT is standardized to be:
+# ${CMT_TARGET_STANDARD_NAME}_<COMPONENT_TYPE>, This is so that the packaging 
+# step can parse the Components.
+# 
 # Input args:
 #   Positional:
 #     (Required) : targetname
@@ -557,6 +566,7 @@ function(cmt_install_target target_name)
 
   set(EXPORT_SET ${CMT_TARGET_NAMESPACE}${CMT_TARGET_EXPORT_NAME}Targets)
 
+  # the component name is standardized so
   install(
     TARGETS ${target_name}
     EXPORT ${EXPORT_SET}

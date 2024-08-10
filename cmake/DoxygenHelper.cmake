@@ -81,7 +81,7 @@ function(cmt_doxygen_helper)
         if(NOT ${PLANTUML} STREQUAL "PLANTUML-NOTFOUND")
             set(DOXYGEN_PLANTUML_EXE_PATH ${PLANTUML})
             message(DEBUG "Plantuml found: ${DOXYGEN_PLANTUML_EXE_PATH}")
-            
+
             # Check if linux:
             if(UNIX AND NOT APPLE)
                 execute_process(COMMAND "bash" "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/get_plantuml_jar_path.sh" "${DOXYGEN_PLANTUML_EXE_PATH}"
@@ -139,8 +139,10 @@ function(cmt_doxygen_helper)
         )
 
         add_custom_target(${PROJECT_NAME}_doc_doxygen ALL SOURCES "${DOXYGEN_OUTPUT_DIRECTORY}/html/index.html")
-
-    # install(DIRECTORY ${CMTFCN_DIRECTORIES} DESTINATION doc)
+        set(CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME})
+        install(DIRECTORY ${DOXYGEN_OUTPUT_DIRECTORY}
+            DESTINATION ${CMAKE_INSTALL_DOCDIR}
+            COMPONENT ${PROJECT_NAME}_documentation_doxygen)
     else()
         message(WARNING "Doxygen need to be installed to generate the doxygen documentation")
     endif()

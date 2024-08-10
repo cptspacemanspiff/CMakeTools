@@ -13,3 +13,5 @@ target_link_libraries(${CMT_LAST_TARGET} PRIVATE Hello)
 cmt_install_target(${CMT_LAST_TARGET})
 
 cmt_install_cmake_config(Hello)
+
+cmt_package_target(Hello)
