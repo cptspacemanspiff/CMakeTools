@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 cmt_project_setup()
 
-cmt_add_src_subdirectory(src)
+
 cmt_add_doc_subdirectory(doc)
+cmt_add_src_subdirectory(src)
 
