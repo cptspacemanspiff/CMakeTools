@@ -43,6 +43,7 @@ function(cmt_externalbuild_cmake NAME)
             COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
             -S ${${NAME_LOWERCASE}_SOURCE_DIR}
             -B ${${NAME_LOWERCASE}_BINARY_DIR}
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
             ${CMTFCN_EXTRA_CONFIGURE_ARGS}
             ${CMTFCN_CONFIGURATION_ARGS}
             WORKING_DIRECTORY ${${NAME_LOWERCASE}_BINARY_DIR}

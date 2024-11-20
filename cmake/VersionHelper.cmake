@@ -4,7 +4,9 @@
 # generate the data.
 
 include("${CMAKE_CURRENT_LIST_DIR}/InternalHelpers.cmake")
+function(cmt_target_get_version)
 
+endfunction()
 function(cmt_target_set_version target)
     find_package(Git)
 
