@@ -17,10 +17,11 @@ function(cmt_externalbuild_cmake NAME)
         "${multiValueArgs}"
         ${ARGN})
 
-    message(DEBUG "cmt_externalbuild cmake build with config args: [${CMTFCN_CONFIGURATION_ARGS}]")
+    message(DEBUG "cmt_externalbuild ${NAME}: CMAKE build with config args: [${CMTFCN_CONFIGURATION_ARGS}]")
 
     string(TOLOWER ${NAME} NAME_LOWERCASE)
-    FetchContent_Populate(${NAME})
+    FetchContent_Populate(${NAME}) #Deprecated....
+    # FetchContent_MakeAvailable(${NAME}) # cannot use because it automatically adds the subdirectory to the project...
 
     if(NOT DEFINED CMTFCN_BUILD_CONFIG)
         set(CMTFCN_BUILD_CONFIG "Release")
@@ -30,9 +31,13 @@ function(cmt_externalbuild_cmake NAME)
     set(CMTFCN_EXTRA_BUILD_ARGS "")
     set(CMTFCN_EXTRA_INSTALL_ARGS "")
 
-    if(NOT ${GENERATOR_IS_MULTI_CONFIG})
+    get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
+    if(NOT ${IS_MULTI_CONFIG})
+        message(DEBUG "cmt_externalbuild ${NAME}: Not using MultiConfig Generator")
         set(CMTFCN_EXTRA_CONFIGURE_ARGS "-DCMAKE_BUILD_TYPE=${CMTFCN_BUILD_CONFIG}")
     else()
+        message(DEBUG "cmt_externalbuild ${NAME}: Using MultiConfig Generator")
         set(CMTFCN_EXTRA_BUILD_ARGS "--config;${CMTFCN_BUILD_CONFIG}")
         set(CMTFCN_EXTRA_INSTALL_ARGS "--config;${CMTFCN_BUILD_CONFIG}")
     endif()
